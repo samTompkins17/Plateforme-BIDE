@@ -1,0 +1,56 @@
+.navbar {
+    height: 74px;
+    padding: 0;
+}
+
+.logo {
+    width: 90px;
+    height: auto;
+}
+
+.navbar-nav {
+    gap: 20px;
+}
+
+.nav-link {
+    color: #555 !important;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    color: var(--primary) !important;
+    font-weight: 700;
+}
+
+.btn-reserver {
+    background: var(--orange);
+    color: #fff;
+    padding: 7px 21px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.btn-reserver:hover {
+    background: #a93e00;
+    color: #fff;
+}
+
+.profile {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.profile img {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile i {
+    font-size: 10px;
+}
