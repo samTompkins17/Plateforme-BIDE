@@ -35,7 +35,7 @@ a {
 ========================= */
 
 .hero {
-    min-height: 500px;
+    min-height: 800px;
     position: relative;
     overflow: hidden;
 
@@ -60,23 +60,11 @@ a {
     z-index: 0;
 }
 
-.hero-overlay {
-    position: absolute;
-
-    top: 0;
-    left: 0;
-
-    width: 100%;
-    height: 100%;
-
-    background: rgba(255, 255, 255, 0.65);
-
-    z-index: 1;
-}
 
 .hero-content {
     position: relative;
     z-index: 2;
+    margin-bottom: 150px;
 }
 
 
@@ -90,9 +78,10 @@ a {
 .hero p {
     max-width: 650px;
     margin: 0 auto 25px;
-    color: #555;
+    color: #fff;
     font-size: 15px;
     line-height: 1.6;
+    font-weight: 700;
 }
 
 .hero-buttons {
@@ -113,7 +102,7 @@ a {
 .btn-outline-custom {
     border: 1px solid #777;
     color: var(--primary);
-    background: #fff;
+    background-color: #f4f8f9;
     padding: 13px 30px;
     border-radius: 30px;
     font-size: 13px;
@@ -123,6 +112,13 @@ a {
 .btn-primary-custom:hover {
     background: #a93e00;
     color: #fff;
+}
+
+.btn-outline-custom:hover {
+   
+    color: var(--primary);
+    border: 1px solid #777;
+    backdrop-filter: blur(2px);
 }
 
 
@@ -136,7 +132,9 @@ a {
     border-radius: 35px 35px 0 0;
     margin-top: -25px;
     position: relative;
+    animation: serviceAppear 0.8s ease-out both;
 }
+
 
 .section-title {
     margin-bottom: 35px;
@@ -160,11 +158,56 @@ a {
     height: 100%;
 
     box-shadow: 0 5px 20px rgba(0,0,0,0.07);
+
+    opacity: 0;
+    transform: translateY(60px);
+
+    animation: serviceReveal linear both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 30%;
 }
 
+@keyframes serviceReveal {
+
+    from {
+        opacity: 0;
+        transform: translateY(70px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+}
+
+.service-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+    transition: 0.2s ease-in-out;
+    cursor: pointer;
+    color: #fafafa;
+    background-color: #a93e00;
+}
+@keyframes serviceAppear {
+
+    from {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+}
+
+
+
 .service-icon {
-    width: 35px;
-    height: 35px;
+    width: 50px;
+    height: 50px;
 
     border-radius: 50%;
 
@@ -190,6 +233,14 @@ a {
     line-height: 1.5;
 }
 
+
+.service-icon span .material-symbols-outlined {
+  font-variation-settings:
+  'FILL' 0,
+  'wght' 400,
+  'GRAD' 10,
+  'opsz' 48
+}
 
 /* =========================
    TARIFS
@@ -230,19 +281,48 @@ a {
 
 .price-card {
     background: #fff;
-    padding: 16px;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
 
-    border-radius: 8px;
+.price-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
 
+.price-card-img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: #f0f4f8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.price-card-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.price-card-info {
+    padding: 14px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-
-    font-size: 12px;
+    font-size: 13px;
 }
 
-.price-card strong {
+.price-card-info span {
+    color: #555;
+}
+
+.price-card-info strong {
     color: var(--primary);
+    font-size: 15px;
 }
 
 
@@ -287,6 +367,7 @@ a {
 
 .payment-content h3 span {
     color: var(--primary);
+    font-weight: 700;
 }
 
 .payment-banner > img {
@@ -348,15 +429,12 @@ a {
 .map-container {
     border-radius: 15px;
     overflow: hidden;
-
     box-shadow: 0 8px 25px rgba(0,0,0,0.08);
 }
 
-.map-container img {
+.map-container iframe {
     width: 100%;
-    height: 300px;
-
-    object-fit: cover;
+    height: 400px;
 }
 
 
@@ -495,4 +573,82 @@ a {
         margin-top: 10px;
     }
 
+}
+
+
+/* =========================
+   COMMENT ÇA MARCHE
+========================= */
+
+.how-section {
+    padding: 80px 0;
+    background: var(--light);
+}
+
+.how-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 40px 24px;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.how-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+}
+
+.how-step {
+    position: absolute;
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 32px;
+    height: 32px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.how-icon {
+    margin: 16px 0;
+}
+
+.how-icon .material-symbols-outlined {
+    font-size: 48px;
+    color: var(--primary);
+}
+
+.how-card h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.how-card p {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.6;
+    margin: 0;
+}
+
+@media (max-width: 575.98px) {
+    .how-card {
+        padding: 30px 12px;
+    }
+    .how-card h3 {
+        font-size: 15px;
+    }
+    .how-card p {
+        font-size: 12px;
+    }
+    .how-icon .material-symbols-outlined {
+        font-size: 36px;
+    }
 }
