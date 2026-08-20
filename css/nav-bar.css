@@ -52,24 +52,6 @@
 .btn-reserver:active {
     transform: translateY(1px) scale(0.98);
 }
-
-.profile {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.profile img {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-.profile i {
-    font-size: 10px;
-}
-
 /* ---- Smooth scroll ---- */
 html {
     scroll-behavior: smooth;
