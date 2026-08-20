@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Bidè - Tableau de bord de gestion des livraisons">
+  <title>Bidè | Administration</title>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <div class="app-shell">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+
+      <div class="brand"><img src="assets/logo.png" alt="Logo" class="logo"></div>
+
+      <nav class="main-nav">
+        <button class="nav-link active" data-page="dashboard">
+          <i class="bi bi-grid-1x2-fill"></i><span>Dashboard</span>
+        </button>
+        <button class="nav-link" data-page="commandes">
+          <i class="bi bi-clipboard-check"></i><span>Commandes</span>
+        </button>
+        <button class="nav-link" data-page="clients">
+          <i class="bi bi-people"></i><span>Clients</span>
+        </button>
+        <button class="nav-link" data-page="livreurs">
+          <i class="bi bi-bicycle"></i><span>Livreurs</span>
+        </button>
+        <button class="nav-link" data-page="statistiques">
+          <i class="bi bi-bar-chart-fill"></i><span>Statistiques</span>
+        </button>
+        <button class="nav-link" data-page="tarifs">
+          <i class="bi bi-tag"></i><span>Tarifs</span>
+        </button>
+      </nav>
+
+      <button class="logout-btn" id="logoutBtn">
+        <i class="bi bi-box-arrow-right"></i><span>Déconnexion</span>
+      </button>
+    </aside>
+
+    <div class="main-area">
+      <!-- TOPBAR -->
+      <header class="topbar">
+        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Ouvrir le menu">
+          <i class="bi bi-list"></i>
+        </button>
+
+        <div class="global-search">
+          <i class="bi bi-search"></i>
+          <input id="globalSearch" type="search" placeholder="Rechercher une commande, un client..." autocomplete="off">
+          <div class="search-results" id="searchResults"></div>
+        </div>
+
+        <div class="topbar-actions">
+          <button class="icon-btn notification-btn" id="notificationBtn" title="Notifications">
+            <i class="bi bi-bell"></i>
+            <span class="notification-dot"></span>
+          </button>
+
+          <button class="profile" id="profileBtn">
+            <span class="avatar">AD</span>
+            <span class="profile-text">
+              <strong>Admin Principal</strong>
+              <small>Super Admin</small>
+            </span>
+            <i class="bi bi-chevron-down profile-chevron"></i>
+          </button>
+
+          <div class="profile-menu" id="profileMenu">
+            <button id="profileAction"><i class="bi bi-person"></i> Mon profil</button>
+            <button id="settingsAction"><i class="bi bi-gear"></i> Paramètres</button>
+            <button id="menuLogout"><i class="bi bi-box-arrow-right"></i> Déconnexion</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+
+        <!-- DASHBOARD -->
+        <section class="page active" id="page-dashboard">
+          <div class="page-heading">
+            <div>
+              <h1>Vue d'ensemble</h1>
+              <p>Bienvenue sur votre tableau de bord, voici l'état de l'activité aujourd'hui.</p>
+            </div>
+          </div>
+
+          <div class="kpi-grid">
+            <article class="kpi-card">
+              <div class="kpi-content">
+                <span class="kpi-label">COMMANDES DU JOUR</span>
+                <strong class="kpi-number" id="kpiOrders">24</strong>
+                <small class="positive"><i class="bi bi-graph-up-arrow"></i> +12% vs hier</small>
+              </div>
+              <i class="bi bi-receipt kpi-watermark"></i>
+            </article>
+
+            <article class="kpi-card revenue">
+              <div class="kpi-content">
+                <span class="kpi-label">REVENU</span>
+                <strong class="kpi-number" id="kpiRevenue">85.000</strong>
+                <strong class="currency">FCFA</strong>
+                <small><i class="bi bi-graph-up-arrow"></i> +5% vs semaine prop.</small>
+              </div>
+            </article>
+
+            <article class="kpi-card">
+              <div class="kpi-content">
+                <span class="kpi-label">LIVREURS EN ROUTE</span>
+                <strong class="kpi-number" id="kpiDrivers">5</strong>
+                <small class="negative"><i class="bi bi-clock"></i> Sur 12 actifs</small>
+              </div>
+              <i class="bi bi-bicycle kpi-watermark"></i>
+            </article>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="panel">
+              <div class="panel-header">
+                <h2>Commandes Récentes</h2>
+                <button class="link-btn" data-page-target="commandes">Voir tout</button>
+              </div>
+              <div class="table-responsive">
+                <table class="table custom-table">
+                  <thead>
+                    <tr>
+                      <th>Commande</th>
+                      <th>Client</th>
+                      <th>Livreur</th>
+                      <th>Montant</th>
+                      <th>Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentOrdersBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="panel revenue-panel">
+              <div class="panel-header">
+                <h2>Évolution Revenus</h2>
+                <select id="dashboardPeriod" class="period-select" aria-label="Période de revenus"
+                  title="Période de revenus">
+                  <option value="week">7 jours</option>
+                  <option value="month">30 jours</option>
+                </select>
+              </div>
+              <div class="chart-box"><canvas id="revenueChart"></canvas></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- COMMANDES -->
+        <section class="page" id="page-commandes">
+          <div class="page-heading">
+            <div>
+              <h1>Commandes</h1>
+              <p>Gérez toutes les commandes de livraison.</p>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <div class="local-search"><i class="bi bi-search"></i><input id="ordersSearch"
+                placeholder="Rechercher une commande..."></div>
+            <select id="orderStatusFilter" class="filter-select" aria-label="Filtre de statut" title="Filtre de statut">
+              <option value="all">Tous les statuts</option>
+              <option value="En attente">En attente</option>
+              <option value="En livraison">En livraison</option>
+              <option value="Livrée">Livrée</option>
+              <option value="Annulée">Annulée</option>
+            </select>
+          </div>
+
+          <div class="panel">
+            <div class="table-responsive">
+              <table class="table custom-table align-middle">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Client</th>
+                    <th>Destination</th>
+                    <th>Livreur</th>
+                    <th>Montant</th>
+                    <th>Date</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="ordersBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- CLIENTS -->
+        <section class="page" id="page-clients">
+          <div class="page-heading">
+            <div>
+              <h1>Clients</h1>
+              <p>Consultez et gérez votre portefeuille clients.</p>
+            </div>
+            <button class="btn-primary-custom" data-action="new-client"><i class="bi bi-person-plus"></i> Ajouter un
+              client</button>
+          </div>
+          <div class="toolbar">
+            <div class="local-search"><i class="bi bi-search"></i><input id="clientsSearch"
+                placeholder="Rechercher un client..."></div>
+          </div>
+          <div class="panel">
+            <div class="table-responsive">
+              <table class="table custom-table align-middle">
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th>Téléphone</th>
+                    <th>Email</th>
+                    <th>Commandes</th>
+                    <th>Total dépensé</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="clientsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- LIVREURS -->
+        <section class="page" id="page-livreurs">
+          <div class="page-heading">
+            <div>
+              <h1>Livreurs</h1>
+              <p>Suivez les livreurs et leur disponibilité.</p>
+            </div>
+            <button class="btn-primary-custom" data-action="new-driver"><i class="bi bi-person-plus"></i> Ajouter un
+              livreur</button>
+          </div>
+          <div class="driver-grid" id="driversGrid"></div>
+        </section>
+
+        <!-- STATISTIQUES -->
+        <section class="page" id="page-statistiques">
+          <div class="page-heading">
+            <div>
+              <h1>Statistiques</h1>
+              <p>Analysez les performances de votre activité.</p>
+            </div>
+            <button class="btn-outline-custom" id="exportStats"><i class="bi bi-download"></i> Exporter CSV</button>
+          </div>
+          <div class="stats-cards">
+            <div class="mini-stat"><span>Chiffre d'affaires</span><strong id="statRevenue">0 FCFA</strong><small>Depuis
+                le début</small></div>
+            <div class="mini-stat"><span>Commandes</span><strong id="statOrders">0</strong><small>Total
+                enregistré</small></div>
+            <div class="mini-stat"><span>Panier moyen</span><strong id="statAverage">0 FCFA</strong><small>Par
+                commande</small></div>
+            <div class="mini-stat"><span>Taux de livraison</span><strong
+                id="statDeliveryRate">0%</strong><small>Commandes livrées</small></div>
+          </div>
+          <div class="stats-chart-panel">
+            <div class="panel-header">
+              <h2>Revenus mensuels</h2>
+            </div>
+            <div class="large-chart"><canvas id="statsChart"></canvas></div>
+          </div>
+        </section>
+
+        <!-- TARIFS -->
+        <section class="page" id="page-tarifs">
+          <div class="page-heading">
+            <div>
+              <h1>Tarifs</h1>
+              <p>Configurez les tarifs de livraison.</p>
+            </div>
+            <button class="btn-primary-custom" data-action="new-rate"><i class="bi bi-plus-lg"></i> Ajouter un
+              tarif</button>
+          </div>
+          <div class="rates-grid" id="ratesGrid"></div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal fade" id="appModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content custom-modal">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitle">Formulaire</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="appForm">
+          <div class="modal-body" id="modalBody"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn-cancel" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="btn-primary-custom">Enregistrer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTIFICATIONS -->
+  <div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="appToast" class="toast custom-toast" role="alert">
+      <div class="toast-body"><i class="bi bi-check-circle-fill"></i><span id="toastMessage">Action effectuée.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIRMATION -->
+  <div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content custom-modal">
+        <div class="modal-body text-center p-4">
+          <div class="confirm-icon"><i class="bi bi-exclamation-triangle"></i></div>
+          <h5 id="confirmTitle">Confirmer</h5>
+          <p id="confirmText">Êtes-vous sûr ?</p>
+          <div class="d-flex gap-2 justify-content-center">
+            <button class="btn-cancel" data-bs-dismiss="modal">Annuler</button>
+            <button class="btn-danger-custom" id="confirmYes">Confirmer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+
+</html>
