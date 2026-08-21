@@ -31,7 +31,7 @@ body {
 .sidebar-wrapper {
   width: 260px;
   min-height: 100vh;
-  background-color: #2D3436;
+  background-color: #0B6E99;
   color: #9ca3af;
   position: fixed;
   top: 0;
@@ -57,7 +57,7 @@ body {
 }
 
 .sidebar-menu .nav-link {
-  color: #9ca3af;
+  color: #ffffff;
   padding: 12px 16px;
   border-radius: 8px;
   font-weight: 500;
@@ -71,11 +71,11 @@ body {
 
 .sidebar-menu .nav-link:hover {
   color: var(--blanc-pur);
-  background: rgba(255, 255, 255, 0.05);
+  background:#FF6B35;
 }
 
 .sidebar-menu .nav-link.active {
-  background-color: var(--bleu-pressing);
+  background-color: #FF6B35;
   color: var(--blanc-pur);
   font-weight: 600;
 }
@@ -97,23 +97,23 @@ body {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.5);
-  z-index: 1030;
+  z-index:1030;
 }
 .sidebar-overlay.show { display: block; }
 
 /* boutton et page */
 .btn-brand {
-  background-color: var(--bleu-pressing);
+  background-color:#FF6B35;
   color: var(--blanc-pur);
   border: none;
   border-radius: 8px;
   padding: 10px 20px;
   font-weight: 600;
 }
-.btn-brand:hover { background-color: #085577; color: var(--blanc-pur); }
+.btn-brand:hover { background-color: var(--orange-energie); color: var(--blanc-pur); }
 
 .btn-cta {
-  background-color: var(--orange-energie);
+  background-color: #FF6B35;
   color: var(--blanc-pur);
   border: none;
   border-radius: 8px;
@@ -135,7 +135,7 @@ body {
 .badge-encours { background-color: var(--badge-traitement-bg); color: var(--badge-traitement-text); border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; font-weight: 600; }
 
 /* composant */
-.category-pill {
+.category-pi #085577 {
   border-radius: 20px;
   padding: 8px 18px;
   font-weight: 600;
