@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Espace Client - Pressing Bidè</title>
+  
+  <!-- Bootstrap 5.3 CSS & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Google Font: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Fichier CSS Externe -->
+  <link rel="stylesheet" href="../css/client.css">
+</head>
+<body>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- SIDEBAR LATÉRALE -->
+  <aside class="sidebar-wrapper" id="sidebar">
+    <div class="sidebar-brand">
+      <a class="navbar-brand" href="#">
+        <img src="../assets/logo.png" alt="Bidé Entreprise" class="logo">
+      </a>
+    </div>
+    <ul class="sidebar-menu">
+      <li>
+        <a class="nav-link active" data-target="dashboard">
+          <i class="bi bi-grid-1x2-fill"></i> Tableau de bord
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" data-target="new-order">
+          <i class="bi bi-plus-circle-fill"></i> Nouvelle commande
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" data-target="tracking">
+          <i class="bi bi-clock-history"></i> Suivi des commandes
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" data-target="orders">
+          <i class="bi bi-bag-check-fill"></i> Historique
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" data-target="profile">
+          <i class="bi bi-person-fill"></i> Mon Profil
+        </a>
+      </li>
+    </ul>
+  </aside>
+
+  <!-- contenu principal -->
+  <main class="main-content">
+
+    <!-- navbar -->
+    <header class="d-flex justify-content-between align-items-center mb-4 gap-3">
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-white border d-lg-none p-2 shadow-sm" id="sidebar-toggle">
+          <i class="bi bi-list fs-4"></i>
+        </button>
+        <h4 class="fw-bold mb-0 text-dark d-none d-md-block" style="color: var(--bleu-pressing)!important;">Espace Client</h4>
+      </div>
+
+      <div class="d-flex align-items-center gap-3" style="cursor: pointer;" onclick="navigateTo('profile')">
+        <div class="header-avatar" id="user-avatar">
+          AD
+        </div>
+        <div>
+          <div class="fw-bold fs-7" id="header-user-name">Amina Diallo</div>
+          <div class="text-muted small" style="font-size: 0.75rem;">Client Premium</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- dashboard-->
+    <section id="dashboard" class="tab-pane-custom active">
+      <div class="mb-4">
+        <h2 class="fw-bold mb-1">Bonjour <span class="user-display-name">AK Amenouveve light</span>, </h2>
+        <p class="text-muted">Ravi de vous revoir sur votre espace Pressing BIDE.</p>
+      </div>
+
+      <!-- block active -->
+      <div id="dashboard-content-area"></div>
+
+      <div class="row g-3 mt-2">
+        <div class="col-12 col-md-4">
+          <div class="card border-0 shadow-sm p-4 h-100 rounded-4">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <div class="icon-box"><i class="bi bi-star-fill"></i></div>
+              <div>
+                <h6 class="fw-bold mb-0">Points Fidélité</h6>
+              </div>
+            </div>
+            <h2 class="fw-bold my-1" style="color: var(--bleu-pressing);">0 <span class="fs-6 text-muted fw-normal">pts</span></h2>
+            <p class="text-muted small mb-0 mt-2">Passez une commande pour commencer à cumuler des points.</p>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="card border-0 shadow-sm p-4 h-100 rounded-4">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <div class="icon-box"><i class="bi bi-geo-alt-fill"></i></div>
+              <div>
+                <h6 class="fw-bold mb-0">Adresse enregistrée</h6>
+                <small class="text-muted">Par défaut</small>
+              </div>
+            </div>
+            <p class="fw-medium mb-1 text-dark" id="dash-address-display">Résidence Les Palmiers, Appt 4B, Lomé</p>
+            <button class="btn btn-link text-decoration-none p-0 small fw-bold" style="color: var(--bleu-pressing);" onclick="navigateTo('profile')">Modifier l'adresse</button>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="card border-0 shadow-sm p-4 h-100 rounded-4">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <div class="icon-box"><i class="bi bi-shop"></i></div>
+              <div>
+                <h6 class="fw-bold mb-0">Boutique Bidè</h6>
+                <small class="text-muted">Agence Principale</small>
+              </div>
+            </div>
+            <p class="fw-medium mb-1 text-dark">Agence Centrale - Bd du 13 Janvier</p>
+            <small class="text-muted">Ouvert 7j/7 de 07h30 à 20h00</small>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- nouvelle commande -->
+    <section id="new-order" class="tab-pane-custom">
+      <div class="row g-4">
+        <div class="col-lg-8">
+          <h2 class="fw-bold mb-1">Choix des articles</h2>
+          <p class="text-muted mb-4">Sélectionnez les articles à confier à nos spécialistes.</p>
+
+          <div class="d-flex gap-2 mb-4 overflow-x-auto pb-2" id="category-filters">
+            <button class="category-pill active" data-cat="all">Tous les articles</button>
+            <button class="category-pill" data-cat="quotidien">Vêtements Quotidiens</button>
+            <button class="category-pill" data-cat="maison">Linge de Maison</button>
+            <button class="category-pill" data-cat="delicat">Pièces Délicates</button>
+          </div>
+
+          <div class="row g-3" id="articles-grid"></div>
+        </div>
+
+        <!-- panier -->
+        <div class="col-lg-4">
+          <div class="card border-0 shadow-sm rounded-4 p-4 sticky-top" style="top: 20px;">
+            <h4 class="fw-bold mb-4">Votre panier</h4>
+            
+            <div id="cart-summary-items" class="mb-3">
+              <p class="text-muted small">Aucun article sélectionné.</p>
+            </div>
+
+            <hr>
+            <div class="d-flex justify-content-between mb-2">
+              <span class="text-muted">Sous-total</span>
+              <span class="fw-semibold" id="cart-subtotal">0 CFA</span>
+            </div>
+
+            <div class="my-4">
+              <span class="text-uppercase small fw-bold text-muted d-block">Total estimé</span>
+              <h2 class="fw-bold my-0" style="color: var(--bleu-pressing);" id="cart-total">0 CFA</h2>
+            </div>
+            <button class="btn btn-cta w-100 py-3 fw-bold mb-3" id="btn-proceed-checkout" disabled onclick="navigateTo('checkout')">
+              Continuer vers la livraison & paiement <i class="bi bi-arrow-right me-1"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!--paiement et livraison -->
+    <section id="checkout" class="tab-pane-custom">
+      <div class="row g-4">
+        <div class="col-lg-7">
+          <h2 class="fw-bold mb-1">Livraison & Paiement</h2>
+          <p class="text-muted mb-4">Choisissez comment déposer/récupérer vos vêtements et régler.</p>
+
+          <h5 class="fw-bold mb-3"><i class="bi bi-geo-alt me-2"></i>Option de Récupération / Retrait</h5>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <div class="selectable-card selected d-flex align-items-center gap-3" id="option-delivery-home" onclick="selectDeliveryMode('home')">
+                <div class="icon-box"><i class="bi bi-house-door-fill"></i></div>
+                <div>
+                  <h6 class="fw-bold mb-0">À domicile</h6>
+                  <small class="text-muted">+ 1 000 CFA (Collecte & Envoi)</small>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="selectable-card d-flex align-items-center gap-3" id="option-delivery-store" onclick="selectDeliveryMode('store')">
+                <div class="icon-box"><i class="bi bi-shop"></i></div>
+                <div>
+                  <h6 class="fw-bold mb-0">En Agence / Boutique</h6>
+                  <small class="text-muted">Gratuit (Dépôt & Retrait)</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="home-address-block" class="card border-0 shadow-sm p-3 mb-4 rounded-3">
+            <label class="form-label fw-bold small text-muted">Adresse de collecte et livraison :</label>
+            <input type="text" class="form-control" id="checkout-address-input" value="Résidence Les Palmiers, Appt 4B, Lomé">
+          </div>
+
+          <h5 class="fw-bold mb-3"><i class="bi bi-credit-card me-2"></i>Mode de paiement</h5>
+          <div class="d-flex flex-column gap-3 mb-4">
+            
+            <div class="selectable-card selected d-flex justify-content-between align-items-center" id="pay-mobile" onclick="selectPaymentMode('mobile')">
+              <div class="d-flex align-items-center gap-3">
+                <div class="icon-box"><i class="bi bi-phone-fill"></i></div>
+                <div>
+                  <h6 class="fw-bold mb-0">Mobile Money</h6>
+                  <small class="text-muted">TMoney, Flooz</small>
+                </div>
+              </div>
+              <i class="bi bi-check-circle-fill text-success fs-5 check-icon"></i>
+            </div>
+
+            <div class="selectable-card d-flex justify-content-between align-items-center" id="pay-card" onclick="selectPaymentMode('card')">
+              <div class="d-flex align-items-center gap-3">
+                <div class="icon-box"><i class="bi bi-credit-card-2-front-fill"></i></div>
+                <div>
+                  <h6 class="fw-bold mb-0">Carte Visa / Mastercard</h6>
+                  <small class="text-muted">Paiement sécurisé en ligne</small>
+                </div>
+              </div>
+              <i class="bi bi-check-circle-fill text-success fs-5 check-icon d-none"></i>
+            </div>
+
+            <div class="selectable-card d-flex justify-content-between align-items-center" id="pay-cash" onclick="selectPaymentMode('cash')">
+              <div class="d-flex align-items-center gap-3">
+                <div class="icon-box"><i class="bi bi-cash-stack"></i></div>
+                <div>
+                  <h6 class="fw-bold mb-0">Paiement en espèces</h6>
+                  <small class="text-muted">À la collecte ou au comptoir</small>
+                </div>
+              </div>
+              <i class="bi bi-check-circle-fill text-success fs-5 check-icon d-none"></i>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="card border-0 shadow-sm rounded-4 p-4">
+            <h5 class="fw-bold mb-4">Récapitulatif final</h5>
+            
+            <div id="checkout-summary-list" class="mb-3"></div>
+
+            <hr>
+            <div class="d-flex justify-content-between mb-2">
+              <span class="text-muted">Sous-total</span>
+              <span class="fw-semibold" id="checkout-subtotal">0 CFA</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span class="text-muted">Logistique</span>
+              <span class="fw-semibold" id="checkout-shipping">1 000 CFA</span>
+            </div>
+
+            <hr>
+            <div class="d-flex justify-content-between align-items-center my-3">
+              <span class="fw-bold fs-5">Total à payer</span>
+              <span class="fw-bold fs-3" style="color: var(--orange-energie);" id="checkout-final-total">0 CFA</span>
+            </div>
+
+            <button class="btn btn-cta w-100 py-3 fw-bold" id="btn-confirm-order" onclick="confirmOrderProcess()">Valider & Payer</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- suivi-->
+    <section id="tracking" class="tab-pane-custom">
+      <div class="mb-4">
+        <h2 class="fw-bold mb-1">Suivi des commandes en cours</h2>
+        <p class="text-muted">Suivez l'état en temps réel de tous vos vêtements déposés.</p>
+      </div>
+
+      <div id="active-trackings-container"></div>
+    </section>
+
+    <!-- historique -->
+    <section id="orders" class="tab-pane-custom">
+      <div class="mb-4">
+        <h3 class="fw-bold mb-1">Historique des commandes</h3>
+        <p class="text-muted small mb-0">Consultez vos commandes et éditez vos reçus de paiement.</p>
+      </div>
+
+      <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="py-3 px-4">N° Commande</th>
+                <th class="py-3 px-4">Date</th>
+                <th class="py-3 px-4">Option</th>
+                <th class="py-3 px-4">Articles</th>
+                <th class="py-3 px-4">Montant</th>
+                <th class="py-3 px-4">Statut</th>
+                <th class="py-3 px-4 text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!--profil-->
+    <section id="profile" class="tab-pane-custom">
+      <div class="mb-4">
+        <h2 class="fw-bold mb-1">Mon Profil</h2>
+        <p class="text-muted">Gérez vos coordonnées, votre photo de profil et votre mot de passe.</p>
+      </div>
+
+      <div class="row g-4">
+        <!-- information personnelle-->
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm p-4 text-center rounded-4">
+            <div class="profile-avatar-container mb-3" id="profile-avatar">
+              AD
+            </div>
+            <h5 class="fw-bold mb-1" id="profile-card-name">Amina Diallo</h5>
+            <p class="text-muted small mb-3">Client Privilège</p>
+            
+            <!-- import du photo -->
+            <input type="file" id="avatar-input" accept="image/*" class="d-none" onchange="handleAvatarUpload(event)">
+            <button class="btn btn-brand-outline btn-sm w-100" onclick="document.getElementById('avatar-input').click()">
+              <i class="bi bi-camera me-1"></i> Changer la photo
+            </button>
+          </div>
+        </div>
+
+        <!-- form-->
+        <div class="col-md-8">
+          <div class="card border-0 shadow-sm p-4 rounded-4 mb-4">
+            <h5 class="fw-bold mb-4" style="color: var(--bleu-pressing);"><i class="bi bi-person me-2"></i>Informations personnelles</h5>
+            <form id="profile-form" onsubmit="saveProfile(event)">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label small fw-bold">Nom complet</label>
+                  <input type="text" class="form-control" id="profile-name" value="Amina Diallo" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-bold">Téléphone</label>
+                  <input type="tel" class="form-control" id="profile-phone" value="+228 90 12 34 56" required>
+                </div>
+                <div class="col-md-12">
+                  <label class="form-label small fw-bold">Adresse Email</label>
+                  <input type="email" class="form-control" id="profile-email" value="amina.diallo@example.com" required>
+                </div>
+                <div class="col-md-12">
+                  <label class="form-label small fw-bold">Adresse de livraison par défaut</label>
+                  <textarea class="form-control" id="profile-address" rows="2">Résidence Les Palmiers, Appt 4B, Lomé</textarea>
+                </div>
+                <div class="col-12 mt-4">
+                  <button type="submit" class="btn btn-brand px-4">Enregistrer les modifications</button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- mot de passe -->
+          <div class="card border-0 shadow-sm p-4 rounded-4">
+            <h5 class="fw-bold mb-4" style="color: var(--bleu-pressing);"><i class="bi bi-shield-lock me-2"></i>Changer le mot de passe</h5>
+            <form id="password-form" onsubmit="changePassword(event)">
+              <div class="row g-3">
+                <div class="col-md-12">
+                  <label class="form-label small fw-bold">Mot de passe actuel</label>
+                  <input type="password" class="form-control" id="current-pass" required placeholder="••••••••">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-bold">Nouveau mot de passe</label>
+                  <input type="password" class="form-control" id="new-pass" required placeholder="••••••••">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-bold">Confirmer le nouveau mot de passe</label>
+                  <input type="password" class="form-control" id="confirm-pass" required placeholder="••••••••">
+                </div>
+                <div class="col-12 mt-4">
+                  <button type="submit" class="btn btn-brand px-4">Mettre à jour le mot de passe</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!--modal de paie-->
+  <div class="modal fade" id="orderDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-bold">Détails de la commande</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4" id="printable-receipt">
+          <div class="text-center mb-4 pb-3 border-bottom">
+            <a class="navbar-brand d-inline-block mb-2" href="#">
+              <img src="../assets/logo.png" alt="Bidé Entreprise" class="logo">
+            </a>
+            <p class="text-muted small mb-0">Reçu de paiement officiel</p>
+          </div>
+
+          <div class="row mb-3 small">
+            <div class="col-6 text-muted">N° Commande :</div>
+            <div class="col-6 text-end fw-bold" id="modal-order-id">#BD-0000</div>
+            <div class="col-6 text-muted">Date :</div>
+            <div class="col-6 text-end fw-bold" id="modal-order-date">--/--/----</div>
+            <div class="col-6 text-muted">Mode de Récupération :</div>
+            <div class="col-6 text-end fw-bold" id="modal-order-mode">--</div>
+            <div class="col-6 text-muted">Mode de Paiement :</div>
+            <div class="col-6 text-end fw-bold" id="modal-order-pay">--</div>
+          </div>
+
+          <h6 class="fw-bold mb-2 small text-uppercase text-muted">Articles confiés</h6>
+          <div id="modal-order-items" class="p-3 bg-light rounded-3 mb-3 small"></div>
+
+          <div class="d-flex justify-content-between mb-1 small">
+            <span class="text-muted">Sous-total :</span>
+            <span class="fw-semibold" id="modal-order-subtotal">0 CFA</span>
+          </div>
+          <div class="d-flex justify-content-between mb-2 small">
+            <span class="text-muted">Frais logistiques :</span>
+            <span class="fw-semibold" id="modal-order-shipping">0 CFA</span>
+          </div>
+          <hr>
+          <div class="d-flex justify-content-between fw-bold fs-5" style="color: var(--bleu-pressing);">
+            <span>Total réglé :</span>
+            <span id="modal-order-total">0 CFA</span>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Fermer</button>
+          <button type="button" class="btn btn-brand" onclick="window.print()"><i class="bi bi-printer me-2"></i>Imprimer le reçu</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../js/client.js"></script>
+</body>
+</html>   
