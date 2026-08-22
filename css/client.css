@@ -135,7 +135,8 @@ body {
 .badge-encours { background-color: var(--badge-traitement-bg); color: var(--badge-traitement-text); border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; font-weight: 600; }
 
 /* composant */
-.category-pi #085577 {
+.category-pill {
+  background-color: #085577; 
   border-radius: 20px;
   padding: 8px 18px;
   font-weight: 600;

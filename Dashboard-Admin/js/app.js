@@ -1,388 +1,833 @@
-/* ================================
-   BIDÈ - APPLICATION ADMIN
-   Tout est stocké dans localStorage
-   ================================ */
+/*  BIDE PRESSING - ADMINISTRATION */
 
-const STORAGE_KEY = "bide_admin_data_v1";
+document.addEventListener('DOMContentLoaded', function () {
 
-const defaultData = {
-  orders: [
-    {id:"CMD-1008", client:"Afi Mensah", destination:"Agoè-Nyivé", driver:"Kossi Adama", amount:4500, date:"20/08/2026", status:"En livraison"},
-    {id:"CMD-1007", client:"Mawuli K.", destination:"Tokoin", driver:"Kodjo Mensah", amount:3000, date:"20/08/2026", status:"Livrée"},
-    {id:"CMD-1006", client:"Eyram A.", destination:"Bè-Klikamé", driver:"Sena D.", amount:2500, date:"20/08/2026", status:"En attente"},
-    {id:"CMD-1005", client:"Nadia B.", destination:"Adidogomé", driver:"Kossi Adama", amount:5000, date:"19/08/2026", status:"Livrée"},
-    {id:"CMD-1004", client:"Yao K.", destination:"Hédzranawoé", driver:"Sami T.", amount:3500, date:"19/08/2026", status:"Annulée"},
-    {id:"CMD-1003", client:"Mélissa A.", destination:"Nyékonakpoè", driver:"Kodjo Mensah", amount:4000, date:"19/08/2026", status:"Livrée"}
-  ],
-  clients: [
-    {id:1,name:"Afi Mensah",phone:"+228 90 12 34 56",email:"afi@example.com"},
-    {id:2,name:"Mawuli K.",phone:"+228 91 22 33 44",email:"mawuli@example.com"},
-    {id:3,name:"Eyram A.",phone:"+228 92 45 67 89",email:"eyram@example.com"},
-    {id:4,name:"Nadia B.",phone:"+228 98 11 22 33",email:"nadia@example.com"}
-  ],
-  drivers: [
-    {id:1,name:"Kossi Adama",phone:"+228 90 45 67 12",zone:"Lomé Centre",status:"En ligne",deliveries:8},
-    {id:2,name:"Kodjo Mensah",phone:"+228 91 45 22 10",zone:"Tokoin",status:"En ligne",deliveries:6},
-    {id:3,name:"Sena D.",phone:"+228 98 33 44 11",zone:"Bè",status:"Hors ligne",deliveries:4},
-    {id:4,name:"Sami T.",phone:"+228 99 10 20 30",zone:"Agoè",status:"En ligne",deliveries:7}
-  ],
-  rates: [
-    {id:1,name:"Standard",zone:"Lomé Centre",price:1500},
-    {id:2,name:"Express",zone:"Lomé + périphérie",price:2500},
-    {id:3,name:"Grande distance",zone:"Zones éloignées",price:4000}
-  ]
-};
+  //  CLES DU LOCALSTORAGE (identiques dans client.js) --------
+  var CLE_COMMANDES = 'bide_orders';
+  var CLE_CLIENTS = 'bide_clients';
+  var CLE_LIVREURS = 'bide_drivers';
+  var CLE_TARIFS = 'bide_rates';
 
-let data = loadData();
-let revenueChart = null;
-let statsChart = null;
-let currentModalMode = null;
-let currentEditId = null;
-let confirmCallback = null;
-
-const appModal = new bootstrap.Modal(document.getElementById("appModal"));
-const confirmModal = new bootstrap.Modal(document.getElementById("confirmModal"));
-const toast = new bootstrap.Toast(document.getElementById("appToast"), {delay:2200});
-
-document.addEventListener("DOMContentLoaded", () => {
-  bindNavigation();
-  bindGlobalActions();
-  renderAll();
-  showPage(location.hash.replace("#","") || "dashboard", false);
-});
-
-function loadData(){
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : structuredClone(defaultData);
-  } catch(e) {
-    return structuredClone(defaultData);
-  }
-}
-function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
-function money(value){ return Number(value || 0).toLocaleString("fr-FR") + " FCFA"; }
-function today(){ return new Date().toLocaleDateString("fr-FR"); }
-function escapeHtml(str){
-  return String(str ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-}
-function notify(message){
-  document.getElementById("toastMessage").textContent = message;
-  toast.show();
-}
-function nextId(items){ return items.length ? Math.max(...items.map(x => Number(x.id)||0))+1 : 1; }
-
-function bindNavigation(){
-  document.querySelectorAll(".nav-link").forEach(btn => {
-    btn.addEventListener("click", () => showPage(btn.dataset.page));
-  });
-  document.querySelectorAll("[data-page-target]").forEach(btn => {
-    btn.addEventListener("click", () => showPage(btn.dataset.pageTarget));
-  });
-  window.addEventListener("hashchange", () => showPage(location.hash.replace("#",""), false));
-  document.getElementById("mobileMenuBtn").addEventListener("click", () => document.getElementById("sidebar").classList.toggle("open"));
-}
-
-function showPage(page, updateHash=true){
-  const valid = ["dashboard","commandes","clients","livreurs","statistiques","tarifs"];
-  if(!valid.includes(page)) page = "dashboard";
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-  document.getElementById("page-"+page).classList.add("active");
-  document.querySelectorAll(".nav-link").forEach(n => n.classList.toggle("active", n.dataset.page===page));
-  document.getElementById("sidebar").classList.remove("open");
-  if(updateHash) history.replaceState(null,"","#"+page);
-  if(page==="dashboard") setTimeout(drawRevenueChart, 50);
-  if(page==="statistiques") setTimeout(drawStatsChart, 50);
-}
-
-function bindGlobalActions(){
-  document.getElementById("globalSearch").addEventListener("input", globalSearch);
-  document.addEventListener("click", e => {
-    if(!e.target.closest(".global-search")) document.getElementById("searchResults").classList.remove("show");
-  });
-
-  document.getElementById("profileBtn").addEventListener("click", e => {
-    e.stopPropagation();
-    document.getElementById("profileMenu").classList.toggle("show");
-  });
-  document.addEventListener("click", () => document.getElementById("profileMenu").classList.remove("show"));
-
-  document.getElementById("notificationBtn").addEventListener("click", () => {
-    notify("Vous avez 3 nouvelles notifications.");
-  });
-
-  document.getElementById("logoutBtn").addEventListener("click", logout);
-  document.getElementById("menuLogout").addEventListener("click", logout);
-  document.getElementById("profileAction").addEventListener("click", () => openProfile());
-  document.getElementById("settingsAction").addEventListener("click", () => notify("Les paramètres sont prêts à être configurés."));
-
-  document.querySelectorAll("[data-action]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const a = btn.dataset.action;
-      if(a==="new-order") openOrderModal();
-      if(a==="new-client") openClientModal();
-      if(a==="new-driver") openDriverModal();
-      if(a==="new-rate") openRateModal();
-    });
-  });
-
-  document.getElementById("ordersSearch").addEventListener("input", renderOrders);
-  document.getElementById("orderStatusFilter").addEventListener("change", renderOrders);
-  document.getElementById("clientsSearch").addEventListener("input", renderClients);
-  document.getElementById("dashboardPeriod").addEventListener("change", drawRevenueChart);
-
-  document.getElementById("appForm").addEventListener("submit", submitModalForm);
-  document.getElementById("confirmYes").addEventListener("click", () => {
-    if(typeof confirmCallback === "function") confirmCallback();
-    confirmCallback = null;
-    confirmModal.hide();
-  });
-  document.getElementById("exportStats").addEventListener("click", exportCSV);
-}
-
-function renderAll(){
-  renderOrders();
-  renderClients();
-  renderDrivers();
-  renderRates();
-  renderDashboard();
-  renderStats();
-}
-
-function renderDashboard(){
-  const ordersToday = data.orders.filter(o => o.date === today()).length;
-  const revenue = data.orders.filter(o => o.status !== "Annulée").reduce((s,o)=>s+Number(o.amount),0);
-  const activeDrivers = data.drivers.filter(d => d.status==="En ligne").length;
-  const inRoute = data.orders.filter(o => o.status==="En livraison").length;
-
-  document.getElementById("kpiOrders").textContent = ordersToday || data.orders.length;
-  document.getElementById("kpiRevenue").textContent = revenue.toLocaleString("fr-FR");
-  document.getElementById("kpiDrivers").textContent = inRoute;
-
-  const body = document.getElementById("recentOrdersBody");
-  body.innerHTML = data.orders.slice(0,5).map(o => `
-    <tr>
-      <td><strong>${escapeHtml(o.id)}</strong></td>
-      <td>${escapeHtml(o.client)}</td>
-      <td>${escapeHtml(o.driver)}</td>
-      <td>${money(o.amount)}</td>
-      <td>${statusBadge(o.status)}</td>
-    </tr>`).join("") || emptyRow(5);
-  setTimeout(drawRevenueChart, 50);
-}
-
-function statusBadge(status){
-  const cls = status==="Livrée" ? "status-done" : status==="En livraison" ? "status-progress" : status==="Annulée" ? "status-cancel" : "status-pending";
-  return `<span class="status-badge ${cls}">${escapeHtml(status)}</span>`;
-}
-
-function renderOrders(){
-  const q = document.getElementById("ordersSearch").value.toLowerCase().trim();
-  const status = document.getElementById("orderStatusFilter").value;
-  const rows = data.orders.filter(o => {
-    const match = [o.id,o.client,o.destination,o.driver].join(" ").toLowerCase().includes(q);
-    return match && (status==="all" || o.status===status);
-  });
-  document.getElementById("ordersBody").innerHTML = rows.map(o => `
-    <tr>
-      <td><strong>${escapeHtml(o.id)}</strong></td>
-      <td>${escapeHtml(o.client)}</td>
-      <td>${escapeHtml(o.destination)}</td>
-      <td>${escapeHtml(o.driver)}</td>
-      <td>${money(o.amount)}</td>
-      <td>${escapeHtml(o.date)}</td>
-      <td>${statusBadge(o.status)}</td>
-      <td>
-        <button class="action-btn" onclick="editOrder('${o.id}')" title="Modifier"><i class="bi bi-pencil"></i></button>
-        <button class="action-btn delete" onclick="deleteOrder('${o.id}')" title="Supprimer"><i class="bi bi-trash"></i></button>
-      </td>
-    </tr>`).join("") || emptyRow(8);
-}
-
-function renderClients(){
-  const q = document.getElementById("clientsSearch").value.toLowerCase().trim();
-  const rows = data.clients.filter(c => [c.name,c.phone,c.email].join(" ").toLowerCase().includes(q));
-  document.getElementById("clientsBody").innerHTML = rows.map(c => {
-    const orders = data.orders.filter(o=>o.client===c.name);
-    const total = orders.reduce((s,o)=>s+Number(o.amount),0);
-    return `<tr>
-      <td><strong>${escapeHtml(c.name)}</strong></td>
-      <td>${escapeHtml(c.phone)}</td><td>${escapeHtml(c.email)}</td>
-      <td>${orders.length}</td><td>${money(total)}</td>
-      <td>
-        <button class="action-btn" onclick="editClient(${c.id})"><i class="bi bi-pencil"></i></button>
-        <button class="action-btn delete" onclick="deleteClient(${c.id})"><i class="bi bi-trash"></i></button>
-      </td>
-    </tr>`;
-  }).join("") || emptyRow(6);
-}
-
-function renderDrivers(){
-  document.getElementById("driversGrid").innerHTML = data.drivers.map(d => `
-    <article class="driver-card">
-      <div class="driver-top">
-        <div class="driver-avatar">${escapeHtml(d.name.split(" ").map(x=>x[0]).join("").slice(0,2).toUpperCase())}</div>
-        <div><div class="driver-name">${escapeHtml(d.name)}</div><div class="driver-phone">${escapeHtml(d.phone)}</div></div>
-        <span class="online-dot ${d.status!=="En ligne"?"offline":""}" title="${escapeHtml(d.status)}"></span>
-      </div>
-      <div class="driver-info">
-        <div><span>Zone</span><strong>${escapeHtml(d.zone)}</strong></div>
-        <div><span>Livraisons</span><strong>${d.deliveries}</strong></div>
-      </div>
-      <div class="driver-actions">
-        <button class="action-btn" onclick="editDriver(${d.id})"><i class="bi bi-pencil"></i></button>
-        <button class="action-btn delete" onclick="deleteDriver(${d.id})"><i class="bi bi-trash"></i></button>
-      </div>
-    </article>`).join("") || `<div class="empty-state">Aucun livreur.</div>`;
-}
-
-function renderRates(){
-  document.getElementById("ratesGrid").innerHTML = data.rates.map(r => `
-    <article class="rate-card">
-      <div class="rate-actions">
-        <button class="action-btn" onclick="editRate(${r.id})"><i class="bi bi-pencil"></i></button>
-        <button class="action-btn delete" onclick="deleteRate(${r.id})"><i class="bi bi-trash"></i></button>
-      </div>
-      <h3>${escapeHtml(r.name)}</h3><div class="zone">${escapeHtml(r.zone)}</div>
-      <div class="rate-price">${money(r.price)} <small>/ livraison</small></div>
-      <div class="text-muted small">Tarif actif</div>
-    </article>`).join("");
-}
-
-function renderStats(){
-  const valid = data.orders.filter(o=>o.status!=="Annulée");
-  const revenue = valid.reduce((s,o)=>s+Number(o.amount),0);
-  const avg = valid.length ? revenue/valid.length : 0;
-  const delivered = valid.length ? valid.filter(o=>o.status==="Livrée").length/valid.length*100 : 0;
-  document.getElementById("statRevenue").textContent = money(revenue);
-  document.getElementById("statOrders").textContent = data.orders.length;
-  document.getElementById("statAverage").textContent = money(Math.round(avg));
-  document.getElementById("statDeliveryRate").textContent = delivered.toFixed(0)+"%";
-  setTimeout(drawStatsChart,50);
-}
-
-function drawRevenueChart(){
-  const canvas = document.getElementById("revenueChart"); if(!canvas) return;
-  if(revenueChart) revenueChart.destroy();
-  const period = document.getElementById("dashboardPeriod").value;
-  const labels = period==="week" ? ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"] : Array.from({length:30},(_,i)=>String(i+1));
-  const values = labels.map((_,i)=> Math.max(5000, 7000 + Math.sin(i*1.3)*2800 + i*350));
-  revenueChart = new Chart(canvas,{type:"line",data:{labels,datasets:[{label:"Revenus",data:values,borderColor:"#066b8c",backgroundColor:"rgba(6,107,140,.10)",fill:true,tension:.35,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>Number(v).toLocaleString("fr-FR")}},x:{grid:{display:false}}}}});
-}
-
-function drawStatsChart(){
-  const canvas = document.getElementById("statsChart"); if(!canvas) return;
-  if(statsChart) statsChart.destroy();
-  const labels=["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août"];
-  const values=[42000,56000,49000,68000,72000,61000,78000,85000];
-  statsChart = new Chart(canvas,{type:"bar",data:{labels,datasets:[{label:"FCFA",data:values,backgroundColor:"#066b8c",borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>Number(v).toLocaleString("fr-FR")+" FCFA"}},x:{grid:{display:false}}}}});
-}
-
-function fields(type,obj={}){
-  if(type==="order") return `
-    <div class="row g-3">
-      <div class="col-md-6"><label class="form-label-custom">Client</label><select class="form-select-custom" name="client">${data.clients.map(c=>`<option ${obj.client===c.name?"selected":""}>${escapeHtml(c.name)}</option>`).join("")}</select></div>
-      <div class="col-md-6"><label class="form-label-custom">Livreur</label><select class="form-select-custom" name="driver">${data.drivers.map(d=>`<option ${obj.driver===d.name?"selected":""}>${escapeHtml(d.name)}</option>`).join("")}</select></div>
-      <div class="col-md-7"><label class="form-label-custom">Destination</label><input required class="form-control-custom" name="destination" value="${escapeHtml(obj.destination||"")}"></div>
-      <div class="col-md-5"><label class="form-label-custom">Montant (FCFA)</label><input required type="number" min="0" class="form-control-custom" name="amount" value="${obj.amount||""}"></div>
-      <div class="col-12"><label class="form-label-custom">Statut</label><select class="form-select-custom" name="status">${["En attente","En livraison","Livrée","Annulée"].map(s=>`<option ${obj.status===s?"selected":""}>${s}</option>`).join("")}</select></div>
-    </div>`;
-  if(type==="client") return `<div class="mb-3"><label class="form-label-custom">Nom complet</label><input required class="form-control-custom" name="name" value="${escapeHtml(obj.name||"")}"></div><div class="mb-3"><label class="form-label-custom">Téléphone</label><input required class="form-control-custom" name="phone" value="${escapeHtml(obj.phone||"")}"></div><div><label class="form-label-custom">Email</label><input type="email" class="form-control-custom" name="email" value="${escapeHtml(obj.email||"")}"></div>`;
-  if(type==="driver") return `<div class="mb-3"><label class="form-label-custom">Nom complet</label><input required class="form-control-custom" name="name" value="${escapeHtml(obj.name||"")}"></div><div class="mb-3"><label class="form-label-custom">Téléphone</label><input required class="form-control-custom" name="phone" value="${escapeHtml(obj.phone||"")}"></div><div class="mb-3"><label class="form-label-custom">Zone</label><input required class="form-control-custom" name="zone" value="${escapeHtml(obj.zone||"")}"></div><div><label class="form-label-custom">Statut</label><select class="form-select-custom" name="status"><option ${obj.status==="En ligne"?"selected":""}>En ligne</option><option ${obj.status==="Hors ligne"?"selected":""}>Hors ligne</option></select></div>`;
-  if(type==="rate") return `<div class="mb-3"><label class="form-label-custom">Nom du tarif</label><input required class="form-control-custom" name="name" value="${escapeHtml(obj.name||"")}"></div><div class="mb-3"><label class="form-label-custom">Zone</label><input required class="form-control-custom" name="zone" value="${escapeHtml(obj.zone||"")}"></div><div><label class="form-label-custom">Prix (FCFA)</label><input required type="number" min="0" class="form-control-custom" name="price" value="${obj.price||""}"></div>`;
-}
-
-function openModal(title,type,obj={},id=null){
-  currentModalMode=type; currentEditId=id;
-  document.getElementById("modalTitle").textContent=title;
-  document.getElementById("modalBody").innerHTML=fields(type,obj);
-  appModal.show();
-}
-function openOrderModal(obj={},id=null){openModal(id?"Modifier la commande":"Nouvelle commande","order",obj,id)}
-function openClientModal(obj={},id=null){openModal(id?"Modifier le client":"Ajouter un client","client",obj,id)}
-function openDriverModal(obj={},id=null){openModal(id?"Modifier le livreur":"Ajouter un livreur","driver",obj,id)}
-function openRateModal(obj={},id=null){openModal(id?"Modifier le tarif":"Ajouter un tarif","rate",obj,id)}
-
-function submitModalForm(e){
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  const v = Object.fromEntries(fd.entries());
-  if(currentModalMode==="order"){
-    v.amount=Number(v.amount); v.date=currentEditId ? data.orders.find(o=>o.id===currentEditId).date : today();
-    if(currentEditId) Object.assign(data.orders.find(o=>o.id===currentEditId),v);
-    else { v.id="CMD-"+(1000+data.orders.length+1); data.orders.unshift(v); }
-    notify(currentEditId?"Commande modifiée.":"Commande créée.");
-  }
-  if(currentModalMode==="client"){
-    if(currentEditId) Object.assign(data.clients.find(c=>c.id===currentEditId),v);
-    else data.clients.push({id:nextId(data.clients),...v});
-    notify(currentEditId?"Client modifié.":"Client ajouté.");
-  }
-  if(currentModalMode==="driver"){
-    v.deliveries= currentEditId ? (data.drivers.find(d=>d.id===currentEditId).deliveries||0) : 0;
-    if(currentEditId) Object.assign(data.drivers.find(d=>d.id===currentEditId),v);
-    else data.drivers.push({id:nextId(data.drivers),...v});
-    notify(currentEditId?"Livreur modifié.":"Livreur ajouté.");
-  }
-  if(currentModalMode==="rate"){
-    v.price=Number(v.price);
-    if(currentEditId) Object.assign(data.rates.find(r=>r.id===currentEditId),v);
-    else data.rates.push({id:nextId(data.rates),...v});
-    notify(currentEditId?"Tarif modifié.":"Tarif ajouté.");
-  }
-  saveData(); appModal.hide(); renderAll();
-}
-
-window.editOrder = id => { const o=data.orders.find(x=>x.id===id); if(o) openOrderModal(o,id); };
-window.deleteOrder = id => confirmDelete("Supprimer cette commande ?",()=>{data.orders=data.orders.filter(x=>x.id!==id);saveData();renderAll();notify("Commande supprimée.")});
-window.editClient = id => { const c=data.clients.find(x=>x.id===id); if(c) openClientModal(c,id); };
-window.deleteClient = id => confirmDelete("Supprimer ce client ?",()=>{data.clients=data.clients.filter(x=>x.id!==id);saveData();renderAll();notify("Client supprimé.")});
-window.editDriver = id => { const d=data.drivers.find(x=>x.id===id); if(d) openDriverModal(d,id); };
-window.deleteDriver = id => confirmDelete("Supprimer ce livreur ?",()=>{data.drivers=data.drivers.filter(x=>x.id!==id);saveData();renderAll();notify("Livreur supprimé.")});
-window.editRate = id => { const r=data.rates.find(x=>x.id===id); if(r) openRateModal(r,id); };
-window.deleteRate = id => confirmDelete("Supprimer ce tarif ?",()=>{data.rates=data.rates.filter(x=>x.id!==id);saveData();renderAll();notify("Tarif supprimé.")});
-
-function confirmDelete(text,cb){
-  document.getElementById("confirmTitle").textContent="Confirmation";
-  document.getElementById("confirmText").textContent=text;
-  confirmCallback=cb; confirmModal.show();
-}
-
-function globalSearch(e){
-  const q=e.target.value.toLowerCase().trim(), box=document.getElementById("searchResults");
-  if(!q){box.classList.remove("show");box.innerHTML="";return}
-  const orders=data.orders.filter(o=>[o.id,o.client,o.destination].join(" ").toLowerCase().includes(q)).slice(0,4);
-  const clients=data.clients.filter(c=>[c.name,c.phone,c.email].join(" ").toLowerCase().includes(q)).slice(0,4);
-  const items=[
-    ...orders.map(o=>`<button class="search-item" onclick="openSearchResult('commandes')"><strong>${escapeHtml(o.id)}</strong><small>Commande · ${escapeHtml(o.client)}</small></button>`),
-    ...clients.map(c=>`<button class="search-item" onclick="openSearchResult('clients')"><strong>${escapeHtml(c.name)}</strong><small>Client · ${escapeHtml(c.phone)}</small></button>`)
+  // -------- LISTE DES CATEGORIES (identique dans client.js) --------
+  var CATEGORIES = [
+    { id: 'quotidien', label: 'Vêtements Quotidiens' },
+    { id: 'maison', label: 'Linge de Maison' },
+    { id: 'delicat', label: 'Pièces Délicates' }
   ];
-  box.innerHTML=items.join("")||`<div class="search-item"><small>Aucun résultat.</small></div>`;
-  box.classList.add("show");
-}
-window.openSearchResult = page => { document.getElementById("searchResults").classList.remove("show");document.getElementById("globalSearch").value="";showPage(page); };
 
-function openProfile(){
-  openModal("Mon profil","client",{name:"Admin Principal",phone:"+228 00 00 00 00",email:"admin@bide.tg"},null);
-  document.getElementById("appForm").querySelectorAll("input").forEach(i=>i.disabled=true);
-  document.querySelector("#appForm .btn-primary-custom").style.display="none";
-}
-document.getElementById("appModal").addEventListener("hidden.bs.modal",()=>{
-  const btn=document.querySelector("#appForm .btn-primary-custom"); if(btn) btn.style.display="";
-  document.getElementById("appForm").querySelectorAll("input").forEach(i=>i.disabled=false);
-});
+  function labelCategorie(idCategorie) {
+    for (var i = 0; i < CATEGORIES.length; i++) {
+      if (CATEGORIES[i].id === idCategorie) {
+        return CATEGORIES[i].label;
+      }
+    }
+    return idCategorie;
+  }
 
-function logout(){
-  confirmDelete("Voulez-vous vraiment vous déconnecter ?",()=>{
-    notify("Déconnexion effectuée. Simulation terminée.");
+  // -------- DONNEES PAR DEFAUT (si le localStorage est vide) --------
+  var LIVREURS_PAR_DEFAUT = [
+    { id: 'DRV-1', name: 'Koffi Mensah', phone: '90 12 34 56', status: 'Disponible', activeDeliveries: 1 },
+    { id: 'DRV-2', name: 'Abla Mawulolo', phone: '91 23 45 67', status: 'En livraison', activeDeliveries: 3 },
+    { id: 'DRV-3', name: 'Yao Denis', phone: '92 34 56 78', status: 'Hors service', activeDeliveries: 0 }
+  ];
+
+  
+  var TARIFS_PAR_DEFAUT = [
+    { id: 'chemise', name: 'Chemise (Cintrée)', category: 'quotidien', price: 1500, unit: 'pièce', service: 'Lavage & Repassage', icon: 'bi-person-workspace' },
+    { id: 'costume', name: 'Costume complet', category: 'delicat', price: 7000, unit: 'pièce', service: 'Nettoyage à sec', icon: 'bi-square-fill' },
+    { id: 'pantalon', name: 'Pantalon Simple', category: 'quotidien', price: 2000, unit: 'pièce', service: 'Lavage & Repassage', icon: 'bi-layers' },
+    { id: 'drap', name: 'Drap de Lit (Grand)', category: 'maison', price: 3000, unit: 'pièce', service: 'Lavage complet', icon: 'bi-house-heart' },
+    { id: 'robe', name: 'Robe de Soirée', category: 'delicat', price: 2500, unit: 'pièce', service: 'Soin spécialisé', icon: 'bi-stars' },
+    { id: 'tshirt', name: 'T-shirt', category: 'quotidien', price: 1000, unit: 'pièce', service: 'Lavage & Repassage', icon: 'bi-person' },
+    { id: 'veste', name: 'Veste/Manteau', category: 'quotidien', price: 3500, unit: 'pièce', service: 'Lavage complet', icon: 'bi-stars' },
+    { id: 'jupe', name: 'Jupe', category: 'quotidien', price: 2000, unit: 'pièce', service: 'Lavage & Repassage', icon: 'bi-layers' },
+    { id: 'taies', name: "Taies d'oreiller", category: 'maison', price: 1500, unit: 'pièce', service: 'Lavage complet', icon: 'bi-house-heart' },
+    { id: 'nappes', name: 'Nappes', category: 'maison', price: 2500, unit: 'pièce', service: 'Lavage complet', icon: 'bi-house-heart' },
+    { id: 'serviette', name: 'Serviette', category: 'maison', price: 1500, unit: 'pièce', service: 'Lavage complet', icon: 'bi-house-heart' },
+    { id: 'rideau', name: 'Rideau', category: 'maison', price: 5000, unit: 'pièce', service: 'Lavage complet', icon: 'bi-house-heart' }
+  ];
+
+  // -------- PETITS OUTILS POUR LIRE / ECRIRE DANS LE LOCALSTORAGE --------
+  function lireStorage(cle, valeurParDefaut) {
+    var texte = localStorage.getItem(cle);
+    if (!texte) {
+      return valeurParDefaut;
+    }
+    return JSON.parse(texte);
+  }
+
+  function ecrireStorage(cle, valeur) {
+    localStorage.setItem(cle, JSON.stringify(valeur));
+  }
+
+  // -------- CHARGEMENT INITIAL DES DONNEES --------
+  var commandes = lireStorage(CLE_COMMANDES, []);
+  var clients = lireStorage(CLE_CLIENTS, []);
+  var livreurs = lireStorage(CLE_LIVREURS, LIVREURS_PAR_DEFAUT);
+  var tarifs = lireStorage(CLE_TARIFS, TARIFS_PAR_DEFAUT);
+
+  // Si rien n'existe encore, on enregistre les valeurs par défaut
+  if (!localStorage.getItem(CLE_LIVREURS)) ecrireStorage(CLE_LIVREURS, livreurs);
+  if (!localStorage.getItem(CLE_TARIFS)) ecrireStorage(CLE_TARIFS, tarifs);
+
+  // -------- REFERENCES DOM --------
+  var sidebar = document.getElementById('sidebar');
+  var sidebarOverlay = document.getElementById('sidebarOverlay');
+  var boutonMenuMobile = document.getElementById('mobileMenuBtn');
+  var liensNavigation = document.querySelectorAll('.sidebar-menu .nav-link, [data-page-target]');
+  var pages = document.querySelectorAll('.page');
+
+  // Modales Bootstrap
+  var modaleFormulaire = new bootstrap.Modal(document.getElementById('appModal'));
+  var modaleConfirmation = new bootstrap.Modal(document.getElementById('confirmModal'));
+  var toastInfo = new bootstrap.Toast(document.getElementById('appToast'));
+
+  // Graphiques Chart.js
+  var graphiqueRevenus = null;
+  var graphiqueStats = null;
+
+  // =========================================================
+  // NAVIGATION ENTRE LES PAGES
+  // =========================================================
+  function changerDePage(pageCible) {
+    var idCible = pageCible.indexOf('page-') === 0 ? pageCible : 'page-' + pageCible;
+
+    for (var i = 0; i < pages.length; i++) {
+      if (pages[i].id === idCible) {
+        pages[i].classList.add('active');
+      } else {
+        pages[i].classList.remove('active');
+      }
+    }
+
+    for (var j = 0; j < liensNavigation.length; j++) {
+      var cible = liensNavigation[j].getAttribute('data-page-target');
+      if (cible === pageCible || 'page-' + cible === idCible) {
+        liensNavigation[j].classList.add('active');
+      } else {
+        liensNavigation[j].classList.remove('active');
+      }
+    }
+
+    if (sidebar.classList.contains('show')) {
+      basculerMenuLateral();
+    }
+
+    if (idCible === 'page-dashboard') dessinerGraphiqueDashboard();
+    if (idCible === 'page-statistiques') dessinerGraphiqueStats();
+  }
+
+  for (var i = 0; i < liensNavigation.length; i++) {
+    liensNavigation[i].addEventListener('click', function (e) {
+      e.preventDefault();
+      var cible = this.getAttribute('data-page-target');
+      if (cible) changerDePage(cible);
+    });
+  }
+
+  function basculerMenuLateral() {
+    sidebar.classList.toggle('show');
+    sidebarOverlay.classList.toggle('show');
+  }
+
+  if (boutonMenuMobile) boutonMenuMobile.addEventListener('click', basculerMenuLateral);
+  if (sidebarOverlay) sidebarOverlay.addEventListener('click', basculerMenuLateral);
+
+  // =========================================================
+  // BADGES DE STATUT
+  // =========================================================
+  function badgeStatut(statut) {
+    var couleurs = {
+      'En attente': 'bg-warning text-dark',
+      'Lavage en cours': 'bg-info text-dark',
+      'Prêt & Emballé': 'bg-primary text-white',
+      'En livraison': 'bg-purple text-white',
+      'Livrée': 'bg-success text-white',
+      'Annulée': 'bg-danger text-white'
+    };
+    var classe = couleurs[statut] || 'bg-secondary';
+    return '<span class="badge ' + classe + '">' + statut + '</span>';
+  }
+
+  // =========================================================
+  // TABLEAU DE BORD (VUE D'ENSEMBLE)
+  // =========================================================
+  function renderDashboard() {
+    var chiffreAffaires = 0;
+    for (var i = 0; i < commandes.length; i++) {
+      if (commandes[i].status !== 'Annulée') {
+        chiffreAffaires += Number(commandes[i].total || 0);
+      }
+    }
+
+    var livreursActifs = 0;
+    for (var j = 0; j < livreurs.length; j++) {
+      if (livreurs[j].status === 'En livraison' || livreurs[j].status === 'Disponible') {
+        livreursActifs++;
+      }
+    }
+
+    document.getElementById('kpiOrders').textContent = commandes.length;
+    document.getElementById('kpiRevenue').textContent = chiffreAffaires.toLocaleString('fr-FR');
+    document.getElementById('kpiDrivers').textContent = livreursActifs;
+
+    var corpsTableau = document.getElementById('recentOrdersBody');
+    corpsTableau.innerHTML = '';
+
+    var commandesRecentes = commandes.slice(0, 5);
+
+    if (commandesRecentes.length === 0) {
+      corpsTableau.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Aucune commande enregistrée.</td></tr>';
+      return;
+    }
+
+    for (var k = 0; k < commandesRecentes.length; k++) {
+      var c = commandesRecentes[k];
+      var ligne = document.createElement('tr');
+      ligne.innerHTML =
+        '<td><strong>#' + c.id + '</strong></td>' +
+        '<td>' + (c.clientName || 'Client inconnu') + '</td>' +
+        '<td><i class="bi bi-person me-1"></i>' + (c.driver || 'Non assigné') + '</td>' +
+        '<td><strong>' + Number(c.total || 0).toLocaleString('fr-FR') + ' FCFA</strong></td>' +
+        '<td>' + badgeStatut(c.status) + '</td>';
+      corpsTableau.appendChild(ligne);
+    }
+  }
+
+  // =========================================================
+  // GESTION DES COMMANDES
+  // =========================================================
+  function renderOrdersTable() {
+    var corpsTableau = document.getElementById('ordersBody');
+    var recherche = (document.getElementById('ordersSearch') && document.getElementById('ordersSearch').value || '').toLowerCase();
+    var statutChoisi = (document.getElementById('orderStatusFilter') && document.getElementById('orderStatusFilter').value) || 'all';
+
+    corpsTableau.innerHTML = '';
+
+    var commandesFiltrees = [];
+    for (var i = 0; i < commandes.length; i++) {
+      var o = commandes[i];
+      var correspondRecherche =
+        o.id.toString().toLowerCase().indexOf(recherche) !== -1 ||
+        (o.clientName || '').toLowerCase().indexOf(recherche) !== -1 ||
+        (o.address || '').toLowerCase().indexOf(recherche) !== -1;
+      var correspondStatut = statutChoisi === 'all' || o.status === statutChoisi;
+
+      if (correspondRecherche && correspondStatut) {
+        commandesFiltrees.push(o);
+      }
+    }
+
+    if (commandesFiltrees.length === 0) {
+      corpsTableau.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Aucune commande trouvée.</td></tr>';
+      return;
+    }
+
+    var optionsLivreurs = '';
+    for (var d = 0; d < livreurs.length; d++) {
+      optionsLivreurs += '<option value="' + livreurs[d].name + '">' + livreurs[d].name + '</option>';
+    }
+
+    for (var j = 0; j < commandesFiltrees.length; j++) {
+      var o2 = commandesFiltrees[j];
+      var ligne = document.createElement('tr');
+      ligne.innerHTML =
+        '<td><strong>#' + o2.id + '</strong></td>' +
+        '<td><div class="fw-bold">' + (o2.clientName || 'Inconnu') + '</div><small class="text-muted">' + (o2.phone || '') + '</small></td>' +
+        '<td><small class="text-muted">' + (o2.address || 'Au comptoir') + '</small></td>' +
+        '<td>' +
+          '<select class="form-select form-select-sm driver-select" data-id="' + o2.id + '">' +
+            '<option value="">-- Assigner --</option>' +
+            genererOptionsLivreurs(o2.driver) +
+          '</select>' +
+        '</td>' +
+        '<td><strong>' + Number(o2.total || 0).toLocaleString('fr-FR') + ' FCFA</strong></td>' +
+        '<td><small>' + (o2.date || new Date().toLocaleDateString('fr-FR')) + '</small></td>' +
+        '<td>' +
+          '<select class="form-select form-select-sm status-select fw-semibold" data-id="' + o2.id + '">' +
+            genererOptionsStatut(o2.status) +
+          '</select>' +
+        '</td>' +
+        '<td><button class="btn btn-sm btn-outline-danger btn-delete-order" data-id="' + o2.id + '" title="Supprimer"><i class="bi bi-trash"></i></button></td>';
+      corpsTableau.appendChild(ligne);
+    }
+
+    var selectsStatut = corpsTableau.querySelectorAll('.status-select');
+    for (var s = 0; s < selectsStatut.length; s++) {
+      selectsStatut[s].addEventListener('change', function (e) {
+        mettreAJourStatutCommande(e.target.dataset.id, e.target.value);
+      });
+    }
+
+    var selectsLivreur = corpsTableau.querySelectorAll('.driver-select');
+    for (var l = 0; l < selectsLivreur.length; l++) {
+      selectsLivreur[l].addEventListener('change', function (e) {
+        mettreAJourLivreurCommande(e.target.dataset.id, e.target.value);
+      });
+    }
+
+    var boutonsSupprimer = corpsTableau.querySelectorAll('.btn-delete-order');
+    for (var b = 0; b < boutonsSupprimer.length; b++) {
+      boutonsSupprimer[b].addEventListener('click', function (e) {
+        demanderSuppressionCommande(e.currentTarget.dataset.id);
+      });
+    }
+  }
+
+  function genererOptionsLivreurs(livreurActuel) {
+    var html = '';
+    for (var i = 0; i < livreurs.length; i++) {
+      var selectionne = livreurs[i].name === livreurActuel ? 'selected' : '';
+      html += '<option value="' + livreurs[i].name + '" ' + selectionne + '>' + livreurs[i].name + '</option>';
+    }
+    return html;
+  }
+
+  function genererOptionsStatut(statutActuel) {
+    var statutsPossibles = ['En attente', 'Lavage en cours', 'Prêt & Emballé', 'En livraison', 'Livrée', 'Annulée'];
+    var html = '';
+    for (var i = 0; i < statutsPossibles.length; i++) {
+      var selectionne = statutsPossibles[i] === statutActuel ? 'selected' : '';
+      html += '<option value="' + statutsPossibles[i] + '" ' + selectionne + '>' + statutsPossibles[i] + '</option>';
+    }
+    return html;
+  }
+
+  function mettreAJourStatutCommande(idCommande, nouveauStatut) {
+    for (var i = 0; i < commandes.length; i++) {
+      if (commandes[i].id == idCommande) {
+        commandes[i].status = nouveauStatut;
+        ecrireStorage(CLE_COMMANDES, commandes);
+        afficherToast('Statut de la commande #' + idCommande + ' mis à jour : ' + nouveauStatut);
+        toutRedessiner();
+        return;
+      }
+    }
+  }
+
+  function mettreAJourLivreurCommande(idCommande, nomLivreur) {
+    for (var i = 0; i < commandes.length; i++) {
+      if (commandes[i].id == idCommande) {
+        commandes[i].driver = nomLivreur;
+        ecrireStorage(CLE_COMMANDES, commandes);
+        afficherToast('Livreur ' + nomLivreur + ' assigné à la commande #' + idCommande);
+        toutRedessiner();
+        return;
+      }
+    }
+  }
+
+  function demanderSuppressionCommande(idCommande) {
+    afficherConfirmation('Supprimer la commande', 'Êtes-vous sûr de vouloir supprimer la commande #' + idCommande + ' ?', function () {
+      var nouvelleListe = [];
+      for (var i = 0; i < commandes.length; i++) {
+        if (commandes[i].id != idCommande) {
+          nouvelleListe.push(commandes[i]);
+        }
+      }
+      commandes = nouvelleListe;
+      ecrireStorage(CLE_COMMANDES, commandes);
+      afficherToast('Commande #' + idCommande + ' supprimée.');
+      toutRedessiner();
+    });
+  }
+
+  // =========================================================
+  // GESTION DES CLIENTS
+  // =========================================================
+  function renderClientsTable() {
+    var corpsTableau = document.getElementById('clientsBody');
+    var recherche = (document.getElementById('clientsSearch') && document.getElementById('clientsSearch').value || '').toLowerCase();
+
+    corpsTableau.innerHTML = '';
+
+    // On part des clients enregistrés manuellement, puis on ajoute
+    // automatiquement les clients trouvés dans les commandes
+    var listeClients = clients.slice();
+
+    for (var i = 0; i < commandes.length; i++) {
+      var o = commandes[i];
+      var dejaPresent = false;
+      for (var j = 0; j < listeClients.length; j++) {
+        if (o.clientName && listeClients[j].name.toLowerCase() === o.clientName.toLowerCase()) {
+          dejaPresent = true;
+          break;
+        }
+      }
+      if (o.clientName && !dejaPresent) {
+        listeClients.push({
+          id: 'CLI-' + Math.floor(Math.random() * 100000),
+          name: o.clientName,
+          phone: o.phone || 'N/A',
+          email: o.email || 'non-renseigné@mail.com',
+          totalSpent: 0,
+          ordersCount: 0
+        });
+      }
+    }
+
+    var listeFiltree = [];
+    for (var k = 0; k < listeClients.length; k++) {
+      var c = listeClients[k];
+      if (c.name.toLowerCase().indexOf(recherche) !== -1 || (c.phone && c.phone.indexOf(recherche) !== -1)) {
+        listeFiltree.push(c);
+      }
+    }
+
+    if (listeFiltree.length === 0) {
+      corpsTableau.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Aucun client trouvé.</td></tr>';
+      return;
+    }
+
+    for (var m = 0; m < listeFiltree.length; m++) {
+      var client = listeFiltree[m];
+
+      var depense = client.totalSpent || 0;
+      var nombreCommandes = 0;
+      for (var n = 0; n < commandes.length; n++) {
+        if (commandes[n].clientName && commandes[n].clientName.toLowerCase() === client.name.toLowerCase()) {
+          depense += Number(commandes[n].total || 0);
+          nombreCommandes++;
+        }
+      }
+      if (nombreCommandes === 0) nombreCommandes = client.ordersCount || 0;
+
+      var ligne = document.createElement('tr');
+      ligne.innerHTML =
+        '<td><div class="d-flex align-items-center gap-2"><div class="header-avatar">' + client.name.substring(0, 2).toUpperCase() + '</div><strong class="text-dark">' + client.name + '</strong></div></td>' +
+        '<td>' + (client.phone || 'N/A') + '</td>' +
+        '<td><small class="text-muted">' + (client.email || 'N/A') + '</small></td>' +
+        '<td><span class="badge bg-light text-dark border">' + nombreCommandes + ' commande(s)</span></td>' +
+        '<td><strong>' + depense.toLocaleString('fr-FR') + ' FCFA</strong></td>' +
+        '<td><button class="btn btn-sm btn-outline-danger btn-delete-client" data-id="' + client.id + '"><i class="bi bi-trash"></i></button></td>';
+      corpsTableau.appendChild(ligne);
+    }
+
+    var boutonsSupprimer = corpsTableau.querySelectorAll('.btn-delete-client');
+    for (var p = 0; p < boutonsSupprimer.length; p++) {
+      boutonsSupprimer[p].addEventListener('click', function (e) {
+        var id = e.currentTarget.dataset.id;
+        afficherConfirmation('Supprimer le client', 'Souhaitez-vous supprimer cette fiche client ?', function () {
+          var nouvelleListe = [];
+          for (var q = 0; q < clients.length; q++) {
+            if (clients[q].id !== id) nouvelleListe.push(clients[q]);
+          }
+          clients = nouvelleListe;
+          ecrireStorage(CLE_CLIENTS, clients);
+          afficherToast('Client supprimé avec succès.');
+          toutRedessiner();
+        });
+      });
+    }
+  }
+
+  // =========================================================
+  // GESTION DES LIVREURS
+  // =========================================================
+  function renderDriversGrid() {
+    var grille = document.getElementById('driversGrid');
+    grille.innerHTML = '';
+
+    for (var i = 0; i < livreurs.length; i++) {
+      var d = livreurs[i];
+
+      var coursesActives = 0;
+      for (var j = 0; j < commandes.length; j++) {
+        if (commandes[j].driver === d.name && commandes[j].status === 'En livraison') {
+          coursesActives++;
+        }
+      }
+
+      var couleurBadge = 'bg-secondary';
+      if (d.status === 'Disponible') couleurBadge = 'bg-success';
+      if (d.status === 'En livraison') couleurBadge = 'bg-primary';
+
+      var carte = document.createElement('div');
+      carte.className = 'col-12 col-md-6 col-xl-4';
+      carte.innerHTML =
+        '<div class="service-card h-100 d-flex flex-column justify-content-between">' +
+          '<div class="d-flex justify-content-between align-items-start mb-3">' +
+            '<div class="d-flex align-items-center gap-3">' +
+              '<div class="p-3 bg-light rounded-circle text-primary fs-4"><i class="bi bi-bicycle"></i></div>' +
+              '<div><h3 class="h6 fw-bold mb-1">' + d.name + '</h3><small class="text-muted"><i class="bi bi-telephone me-1"></i>' + d.phone + '</small></div>' +
+            '</div>' +
+            '<span class="badge ' + couleurBadge + '">' + d.status + '</span>' +
+          '</div>' +
+          '<div class="border-top pt-3 mt-2 d-flex justify-content-between align-items-center">' +
+            '<small class="text-muted">Courses actives: <strong>' + coursesActives + '</strong></small>' +
+            '<button class="btn btn-sm btn-outline-danger btn-delete-driver" data-id="' + d.id + '"><i class="bi bi-trash"></i></button>' +
+          '</div>' +
+        '</div>';
+      grille.appendChild(carte);
+    }
+
+    var boutonsSupprimer = grille.querySelectorAll('.btn-delete-driver');
+    for (var k = 0; k < boutonsSupprimer.length; k++) {
+      boutonsSupprimer[k].addEventListener('click', function (e) {
+        var id = e.currentTarget.dataset.id;
+        afficherConfirmation('Supprimer le livreur', 'Confirmez-vous le retrait de ce livreur ?', function () {
+          var nouvelleListe = [];
+          for (var m = 0; m < livreurs.length; m++) {
+            if (livreurs[m].id !== id) nouvelleListe.push(livreurs[m]);
+          }
+          livreurs = nouvelleListe;
+          ecrireStorage(CLE_LIVREURS, livreurs);
+          afficherToast('Livreur retiré.');
+          toutRedessiner();
+        });
+      });
+    }
+  }
+
+  // =========================================================
+  // GESTION DU CATALOGUE / TARIFS
+  // =========================================================
+  function renderRatesGrid() {
+    var grille = document.getElementById('ratesGrid');
+    grille.innerHTML = '';
+
+    for (var i = 0; i < tarifs.length; i++) {
+      var r = tarifs[i];
+
+      var carte = document.createElement('div');
+      carte.className = 'col-12 col-sm-6 col-md-4 col-xl-3';
+      carte.innerHTML =
+        '<div class="service-card h-100 d-flex flex-column justify-content-between">' +
+          '<div>' +
+            '<span class="badge bg-light text-dark border mb-2">' + labelCategorie(r.category) + '</span>' +
+            '<h3 class="h6 fw-bold text-dark">' + r.name + '</h3>' +
+            '<div class="fs-4 fw-bold text-primary my-2">' + Number(r.price).toLocaleString('fr-FR') + ' <small class="fs-6 text-muted">FCFA / ' + (r.unit || 'pièce') + '</small></div>' +
+          '</div>' +
+          '<div class="border-top pt-2 mt-3 d-flex justify-content-end gap-2">' +
+            '<button class="btn btn-sm btn-outline-danger btn-delete-rate" data-id="' + r.id + '"><i class="bi bi-trash"></i> Supprimer</button>' +
+          '</div>' +
+        '</div>';
+      grille.appendChild(carte);
+    }
+
+    var boutonsSupprimer = grille.querySelectorAll('.btn-delete-rate');
+    for (var j = 0; j < boutonsSupprimer.length; j++) {
+      boutonsSupprimer[j].addEventListener('click', function (e) {
+        var id = e.currentTarget.dataset.id;
+        afficherConfirmation("Supprimer l'article", 'Supprimer cet article de la grille tarifaire ?', function () {
+          var nouvelleListe = [];
+          for (var k = 0; k < tarifs.length; k++) {
+            if (tarifs[k].id !== id) nouvelleListe.push(tarifs[k]);
+          }
+          tarifs = nouvelleListe;
+          ecrireStorage(CLE_TARIFS, tarifs);
+          afficherToast('Tarif supprimé.');
+          toutRedessiner();
+        });
+      });
+    }
+  }
+
+  // =========================================================
+  // STATISTIQUES
+  // =========================================================
+  function renderStats() {
+    var commandesValides = [];
+    for (var i = 0; i < commandes.length; i++) {
+      if (commandes[i].status !== 'Annulée') commandesValides.push(commandes[i]);
+    }
+
+    var revenuTotal = 0;
+    for (var j = 0; j < commandesValides.length; j++) {
+      revenuTotal += Number(commandesValides[j].total || 0);
+    }
+
+    var panierMoyen = commandesValides.length > 0 ? Math.round(revenuTotal / commandesValides.length) : 0;
+
+    var nombreLivrees = 0;
+    for (var k = 0; k < commandes.length; k++) {
+      if (commandes[k].status === 'Livrée') nombreLivrees++;
+    }
+    var tauxLivraison = commandes.length > 0 ? Math.round((nombreLivrees / commandes.length) * 100) : 0;
+
+    document.getElementById('statRevenue').textContent = revenuTotal.toLocaleString('fr-FR') + ' FCFA';
+    document.getElementById('statOrders').textContent = commandes.length;
+    document.getElementById('statAverage').textContent = panierMoyen.toLocaleString('fr-FR') + ' FCFA';
+    document.getElementById('statDeliveryRate').textContent = tauxLivraison + '%';
+  }
+
+  // =========================================================
+  // GRAPHIQUES (CHART.JS)
+  // =========================================================
+  function dessinerGraphiqueDashboard() {
+    var contexte = document.getElementById('revenueChart') && document.getElementById('revenueChart').getContext('2d');
+    if (!contexte) return;
+
+    if (graphiqueRevenus) graphiqueRevenus.destroy();
+
+    graphiqueRevenus = new Chart(contexte, {
+      type: 'line',
+      data: {
+        labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+        datasets: [{
+          label: 'Revenus (FCFA)',
+          data: [15000, 22000, 18000, 32000, 25000, 45000, 30000],
+          borderColor: '#0d6efd',
+          backgroundColor: 'rgba(13, 110, 253, 0.1)',
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+  }
+
+  function dessinerGraphiqueStats() {
+    var contexte = document.getElementById('statsChart') && document.getElementById('statsChart').getContext('2d');
+    if (!contexte) return;
+
+    if (graphiqueStats) graphiqueStats.destroy();
+
+    graphiqueStats = new Chart(contexte, {
+      type: 'bar',
+      data: {
+        labels: ['Janv', 'Févr', 'Mars', 'Avril', 'Mai', 'Juin', 'Juil', 'Août'],
+        datasets: [{
+          label: "Chiffre d'affaires mensuel",
+          data: [120000, 150000, 180000, 220000, 190000, 280000, 310000, 400000],
+          backgroundColor: '#0d6efd',
+          borderRadius: 6
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+  }
+
+  // =========================================================
+  // RECHERCHE GLOBALE (BARRE DU HAUT)
+  // =========================================================
+  var champRecherche = document.getElementById('globalSearch');
+  var zoneResultats = document.getElementById('searchResults');
+
+  if (champRecherche && zoneResultats) {
+    champRecherche.addEventListener('input', function (e) {
+      var requete = e.target.value.toLowerCase().trim();
+      if (!requete) {
+        zoneResultats.classList.add('d-none');
+        return;
+      }
+
+      var resultats = [];
+      for (var i = 0; i < commandes.length; i++) {
+        var o = commandes[i];
+        if (o.id.toString().toLowerCase().indexOf(requete) !== -1 || (o.clientName || '').toLowerCase().indexOf(requete) !== -1) {
+          resultats.push(o);
+        }
+      }
+
+      zoneResultats.innerHTML = '';
+      if (resultats.length === 0) {
+        zoneResultats.innerHTML = '<div class="p-3 text-muted text-center small">Aucun résultat</div>';
+      } else {
+        for (var j = 0; j < resultats.length; j++) {
+          var o2 = resultats[j];
+          var lien = document.createElement('a');
+          lien.className = 'dropdown-item p-2 border-bottom d-flex justify-content-between align-items-center';
+          lien.href = '#';
+          lien.innerHTML = '<div><strong>Commande #' + o2.id + '</strong> - ' + (o2.clientName || 'Inconnu') + '</div>' + badgeStatut(o2.status);
+          lien.addEventListener('click', function (ev) {
+            ev.preventDefault();
+            changerDePage('commandes');
+            zoneResultats.classList.add('d-none');
+          });
+          zoneResultats.appendChild(lien);
+        }
+      }
+      zoneResultats.classList.remove('d-none');
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!champRecherche.contains(e.target) && !zoneResultats.contains(e.target)) {
+        zoneResultats.classList.add('d-none');
+      }
+    });
+  }
+
+  // FILTRES DE RECHERCHE DES TABLEAUX
+  var champRechercheCommandes = document.getElementById('ordersSearch');
+  if (champRechercheCommandes) champRechercheCommandes.addEventListener('input', renderOrdersTable);
+
+  var filtreStatut = document.getElementById('orderStatusFilter');
+  if (filtreStatut) filtreStatut.addEventListener('change', renderOrdersTable);
+
+  var champRechercheClients = document.getElementById('clientsSearch');
+  if (champRechercheClients) champRechercheClients.addEventListener('input', renderClientsTable);
+
+  // =========================================================
+  // FORMULAIRES DANS LES MODALES (AJOUT)
+  // =========================================================
+  var titreModal = document.getElementById('modalTitle');
+  var corpsModal = document.getElementById('modalBody');
+  var formulaireModal = document.getElementById('appForm');
+
+  var boutonsAction = document.querySelectorAll('[data-action]');
+  for (var i = 0; i < boutonsAction.length; i++) {
+    boutonsAction[i].addEventListener('click', function () {
+      ouvrirModal(this.getAttribute('data-action'));
+    });
+  }
+
+  function ouvrirModal(action) {
+    formulaireModal.dataset.action = action;
+
+    if (action === 'new-client') {
+      titreModal.textContent = 'Ajouter un nouveau client';
+      corpsModal.innerHTML =
+        '<div class="mb-3"><label class="form-label">Nom complet</label><input type="text" id="formClientName" class="form-control" required placeholder="Ex: Jean Dupont"></div>' +
+        '<div class="mb-3"><label class="form-label">Téléphone</label><input type="tel" id="formClientPhone" class="form-control" required placeholder="Ex: 90 00 00 00"></div>' +
+        '<div class="mb-3"><label class="form-label">Email</label><input type="email" id="formClientEmail" class="form-control" placeholder="Ex: jean@mail.com"></div>';
+
+    } else if (action === 'new-driver') {
+      titreModal.textContent = 'Ajouter un livreur';
+      corpsModal.innerHTML =
+        '<div class="mb-3"><label class="form-label">Nom du livreur</label><input type="text" id="formDriverName" class="form-control" required placeholder="Ex: Paul Lawson"></div>' +
+        '<div class="mb-3"><label class="form-label">Téléphone</label><input type="tel" id="formDriverPhone" class="form-control" required placeholder="Ex: 92 00 00 00"></div>';
+
+    } else if (action === 'new-rate') {
+      titreModal.textContent = 'Ajouter un article au catalogue';
+
+      var optionsCategories = '';
+      for (var c = 0; c < CATEGORIES.length; c++) {
+        optionsCategories += '<option value="' + CATEGORIES[c].id + '">' + CATEGORIES[c].label + '</option>';
+      }
+
+      corpsModal.innerHTML =
+        '<div class="mb-3"><label class="form-label">Nom de la prestation</label><input type="text" id="formRateName" class="form-control" required placeholder="Ex: Veste en cuir"></div>' +
+        '<div class="mb-3"><label class="form-label">Catégorie</label><select id="formRateCategory" class="form-select" required>' + optionsCategories + '</select></div>' +
+        '<div class="mb-3"><label class="form-label">Prix (FCFA)</label><input type="number" id="formRatePrice" class="form-control" min="100" required placeholder="2500"></div>';
+    }
+
+    modaleFormulaire.show();
+  }
+
+  formulaireModal.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var action = formulaireModal.dataset.action;
+
+    if (action === 'new-client') {
+      clients.push({
+        id: 'CLI-' + Date.now(),
+        name: document.getElementById('formClientName').value,
+        phone: document.getElementById('formClientPhone').value,
+        email: document.getElementById('formClientEmail').value,
+        totalSpent: 0,
+        ordersCount: 0
+      });
+      ecrireStorage(CLE_CLIENTS, clients);
+      afficherToast('Nouveau client ajouté !');
+
+    } else if (action === 'new-driver') {
+      livreurs.push({
+        id: 'DRV-' + Date.now(),
+        name: document.getElementById('formDriverName').value,
+        phone: document.getElementById('formDriverPhone').value,
+        status: 'Disponible',
+        activeDeliveries: 0
+      });
+      ecrireStorage(CLE_LIVREURS, livreurs);
+      afficherToast('Nouveau livreur enregistré !');
+
+    } else if (action === 'new-rate') {
+      tarifs.push({
+        id: 'ITEM-' + Date.now(),
+        name: document.getElementById('formRateName').value,
+        category: document.getElementById('formRateCategory').value,
+        price: Number(document.getElementById('formRatePrice').value),
+        unit: 'pièce',
+        icon: 'bi-basket'
+      });
+      ecrireStorage(CLE_TARIFS, tarifs);
+      afficherToast('Nouvel article ajouté au catalogue client !');
+    }
+
+    modaleFormulaire.hide();
+    toutRedessiner();
   });
-}
 
-function emptyRow(cols){return `<tr><td colspan="${cols}"><div class="empty-state"><i class="bi bi-inbox"></i>Aucun résultat trouvé.</div></td></tr>`}
+  // =========================================================
+  // MODALE DE CONFIRMATION
+  // =========================================================
+  var actionAConfirmer = null;
 
-function exportCSV(){
-  const headers=["ID","Client","Destination","Livreur","Montant","Date","Statut"];
-  const lines=[headers,...data.orders.map(o=>[o.id,o.client,o.destination,o.driver,o.amount,o.date,o.status])]
-    .map(row=>row.map(v=>`"${String(v).replaceAll('"','""')}"`).join(";")).join("\n");
-  const blob=new Blob(["\ufeff"+lines],{type:"text/csv;charset=utf-8"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="bide-statistiques.csv";a.click();URL.revokeObjectURL(a.href);
-}
+  function afficherConfirmation(titre, texte, callback) {
+    document.getElementById('confirmTitle').textContent = titre;
+    document.getElementById('confirmText').textContent = texte;
+    actionAConfirmer = callback;
+    modaleConfirmation.show();
+  }
+
+  var boutonConfirmerOui = document.getElementById('confirmYes');
+  if (boutonConfirmerOui) {
+    boutonConfirmerOui.addEventListener('click', function () {
+      if (actionAConfirmer) actionAConfirmer();
+      modaleConfirmation.hide();
+    });
+  }
+
+  // =========================================================
+  // TOAST (PETIT MESSAGE DE CONFIRMATION)
+  // =========================================================
+  function afficherToast(message) {
+    document.getElementById('toastMessage').textContent = message;
+    toastInfo.show();
+  }
+
+  // =========================================================
+  // SYNCHRONISATION EN DIRECT AVEC LE CLIENT
+  // =========================================================
+  // Quand le client passe une commande ou modifie son profil dans un
+  // autre onglet, le navigateur envoie un événement "storage" ici.
+  window.addEventListener('storage', function (e) {
+    if (e.key === CLE_COMMANDES || e.key === CLE_CLIENTS || e.key === CLE_LIVREURS || e.key === CLE_TARIFS) {
+      commandes = lireStorage(CLE_COMMANDES, []);
+      clients = lireStorage(CLE_CLIENTS, []);
+      livreurs = lireStorage(CLE_LIVREURS, LIVREURS_PAR_DEFAUT);
+      tarifs = lireStorage(CLE_TARIFS, TARIFS_PAR_DEFAUT);
+      toutRedessiner();
+      afficherToast('Données synchronisées en direct avec le client !');
+    }
+  });
+
+ 
+  const donnesClient = localStorage.getItem('utilisateurConnecte');
+  const utilisateur = donnesClient ? JSON.parse(donnesClient) : null;
+
+  // Si l'utilisateur n'est pas connecté ou n'est pas admin, on le bloque et redirige
+  if (!utilisateur || utilisateur.role !== 'admin') {
+    alert("Accès refusé. Vous n'avez pas les autorisations nécessaires.");
+    window.location.href = "../pages/index.html";
+  }
+
+  // Bouton "Charger les demandes reçues" : permet de forcer une
+  // relecture manuelle du localStorage (utile pendant les tests dans
+  // le même onglet, où l'événement "storage" ne se déclenche pas).
+  var boutonChargerCommandes = document.getElementById('btn-fetch-orders');
+  if (boutonChargerCommandes) {
+    boutonChargerCommandes.addEventListener('click', function () {
+      commandes = lireStorage(CLE_COMMANDES, []);
+      toutRedessiner();
+      afficherToast('Commandes actualisées depuis le site client.');
+    });
+  }
+
+  // =========================================================
+  // MISE A JOUR GLOBALE ET LANCEMENT INITIAL
+  // =========================================================
+  function toutRedessiner() {
+    renderDashboard();
+    renderOrdersTable();
+    renderClientsTable();
+    renderDriversGrid();
+    renderRatesGrid();
+    renderStats();
+  }
+
+  toutRedessiner();
+  dessinerGraphiqueDashboard();
+  dessinerGraphiqueStats();
+});
