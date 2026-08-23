@@ -1,25 +1,59 @@
-var register = document.getElementById('register');
-
 // Identifiants administrateur prédéfinis
-var ADMIN_EMAIL = "admin@bide.tg";
-var ADMIN_PASSWORD = "AdminPassword123";
+let ADMIN_EMAIL = "admin@bide.tg";
+let ADMIN_PASSWORD = "AdminPassword123";
+let USERS_KEY = "bide_users";
+let CLIENTS_KEY = "bide_clients";
 
 // Liens de redirection
-var ADMIN_URL = "../Dashboard-Admin/dashboard.html";
-var CLIENT_URL = "../pages/client.html";
+let ADMIN_URL = "../Dashboard-Admin/dashboard.html";
+let CLIENT_URL = "../pages/client.html";
 
-register.addEventListener('click', function (event) {
+// Lis la liste des utilisateurs inscrits depuis le localStorage
+function lireUtilisateurs() {
+  try {
+    return JSON.parse(localStorage.getItem(USERS_KEY)) || [];
+  } catch (error) {
+    return [];
+  }
+}
+
+// Sauvegarde la liste des utilisateurs dans le localStorage
+function ecrireUtilisateurs(utilisateurs) {
+  localStorage.setItem(USERS_KEY, JSON.stringify(utilisateurs));
+}
+
+// Lis la liste des fiches clients depuis le localStorage
+function lireClients() {
+  try {
+    return JSON.parse(localStorage.getItem(CLIENTS_KEY)) || [];
+  } catch (error) {
+    return [];
+  }
+}
+
+// Sauvegarde la liste des fiches clients dans le localStorage
+function ecrireClients(clients) {
+  localStorage.setItem(CLIENTS_KEY, JSON.stringify(clients));
+}
+
+// -------- ÉCOUTE DU FORMULAIRE D'INSCRIPTION --------
+document.addEventListener('DOMContentLoaded', function () {
+  let register = document.getElementById('register');
+  let formulaire = register ? register.closest('form') : null;
+  if (!formulaire) return;
+
+  formulaire.addEventListener('submit', function (event) {
   event.preventDefault();
 
-  var nom = document.getElementById('nom');
-  var prenom = document.getElementById('prenom');
-  var telephone = document.getElementById('telephone');
-  var email = document.getElementById('email');
-  var password = document.getElementById('password');
-  var confirm = document.getElementById('confirm_password');
-  var terms = document.getElementById('terms');
+  let nom = document.getElementById('nom');
+  let prenom = document.getElementById('prenom');
+  let telephone = document.getElementById('telephone');
+  let email = document.getElementById('email');
+  let password = document.getElementById('password');
+  let champConfirmation = document.getElementById('confirm_password');
+  let terms = document.getElementById('terms');
 
-  var estValide = true;
+  let estValide = true;
 
   // Validation Nom
   if (nom.value.trim().length < 2) {
@@ -38,7 +72,7 @@ register.addEventListener('click', function (event) {
   }
 
   // Validation Téléphone
-  var phoneRegex = /^[0-9\s\+\-]{8,}$/;
+  let phoneRegex = /^[0-9\s\+\-]{8,}$/;
   if (!phoneRegex.test(telephone.value.trim())) {
     showError(telephone, "Numéro de téléphone invalide.");
     estValide = false;
@@ -47,8 +81,8 @@ register.addEventListener('click', function (event) {
   }
 
   // Validation Email
-  var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  var userEmail = email.value.trim().toLowerCase();
+  let emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  let userEmail = email.value.trim().toLowerCase();
   if (!emailRegex.test(userEmail)) {
     showError(email, "Veuillez entrer une adresse email valide.");
     estValide = false;
@@ -57,7 +91,7 @@ register.addEventListener('click', function (event) {
   }
 
   // Validation Mot de passe
-  var passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
+  let passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
   if (!passwordRegex.test(password.value)) {
     showError(password, "Le mot de passe doit contenir 8 caractères min., avec au moins 1 majuscule et 1 chiffre.");
     estValide = false;
@@ -66,11 +100,11 @@ register.addEventListener('click', function (event) {
   }
 
   // Validation Confirmation mot de passe
-  if (confirm.value !== password.value || confirm.value === "") {
-    showError(confirm, "Les mots de passe ne correspondent pas.");
+  if (champConfirmation.value !== password.value || champConfirmation.value === "") {
+    showError(champConfirmation, "Les mots de passe ne correspondent pas.");
     estValide = false;
   } else {
-    clearError(confirm);
+    clearError(champConfirmation);
   }
 
   if (!terms.checked) {
@@ -80,11 +114,27 @@ register.addEventListener('click', function (event) {
     clearError(terms);
   }
 
+  // Si toutes les validations passent, on crée le compte
   if (estValide) {
-    var userPassword = password.value;
-    var isAdmin = (userEmail === ADMIN_EMAIL.toLowerCase()) && (userPassword === ADMIN_PASSWORD);
+    let userPassword = password.value;
+    // Vérifier si c'est un compte admin (identifiants prédéfinis)
+    let isAdmin = (userEmail === ADMIN_EMAIL.toLowerCase()) && (userPassword === ADMIN_PASSWORD);
+    let utilisateurs = lireUtilisateurs();
 
-    var utilisateur = {
+    // Pour un client, vérifier que l'email n'est pas déjà utilisé
+    if (!isAdmin) {
+      let emailExiste = utilisateurs.some(function (utilisateurExistant) {
+        return utilisateurExistant.email === userEmail;
+      });
+
+      if (emailExiste) {
+        showError(email, "Un compte existe déjà avec cette adresse email.");
+        return;
+      }
+    }
+
+    // Créer l'objet utilisateur de session (utilisé par tous les fichiers)
+    let utilisateur = {
       nom: nom.value.trim(),
       prenom: prenom.value.trim(),
       telephone: telephone.value.trim(),
@@ -92,31 +142,68 @@ register.addEventListener('click', function (event) {
       role: isAdmin ? 'admin' : 'client'
     };
 
+    // Sauvegarder la session pour l'auth guard côté client/admin
     localStorage.setItem('utilisateurConnecte', JSON.stringify(utilisateur));
 
     // Sauvegarder aussi le profil au format attendu par client.js
     // (clé 'bide_client_profile' avec champs name, phone, email, address)
-    var profilClient = {
+    let profilClient = {
       name: nom.value.trim() + ' ' + prenom.value.trim(),
       phone: telephone.value.trim(),
       email: userEmail,
       address: '',
       avatar: ''
     };
+
+    if (!isAdmin) {
+      utilisateurs.push({
+        name: profilClient.name,
+        phone: profilClient.phone,
+        email: userEmail,
+        password: userPassword,
+        address: '',
+        avatar: ''
+      });
+      ecrireUtilisateurs(utilisateurs);
+
+      let clients = lireClients();
+      let clientExiste = clients.some(function (clientExistant) {
+        return (clientExistant.email || '').toLowerCase() === userEmail;
+      });
+
+      if (!clientExiste) {
+        clients.push({
+          id: 'CLI-' + Date.now(),
+          name: profilClient.name,
+          phone: profilClient.phone,
+          email: userEmail,
+          totalSpent: 0,
+          ordersCount: 0
+        });
+        ecrireClients(clients);
+      }
+    }
+
+    // Sauvegarder le profil au format client.js (clé bide_client_profile)
     localStorage.setItem('bide_client_profile', JSON.stringify(profilClient));
 
+    // Rediriger vers l'espace correspondant
     if (isAdmin) {
       window.location.href = ADMIN_URL;
     } else {
       window.location.href = CLIENT_URL;
     }
   }
+  });
 });
 
-// Fonctions d'affichage des erreurs
+// =========================================================
+// FONCTIONS D'AFFICHAGE DES ERREURS DE VALIDATION
+// =========================================================
+// Affiche un message d'erreur sous le champ et passe sa bordure en rouge
 function showError(inputElement, errorMessageText) {
-  var parentContainer = inputElement.parentElement;
-  var errorSpan = parentContainer.querySelector('.error-message');
+  let parentContainer = inputElement.parentElement;
+  let errorSpan = parentContainer.querySelector('.error-message');
 
   if (!errorSpan) {
     errorSpan = document.createElement('span');
@@ -132,9 +219,10 @@ function showError(inputElement, errorMessageText) {
   inputElement.style.borderColor = 'red';
 }
 
+// Supprime le message d'erreur et réinitialise la bordure du champ
 function clearError(inputElement) {
-  var parentContainer = inputElement.parentElement;
-  var errorSpan = parentContainer.querySelector('.error-message');
+  let parentContainer = inputElement.parentElement;
+  let errorSpan = parentContainer.querySelector('.error-message');
 
   if (errorSpan) {
     errorSpan.remove();
