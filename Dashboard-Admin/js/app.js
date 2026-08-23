@@ -15,6 +15,10 @@ document.addEventListener('DOMContentLoaded', function () {
     { id: 'delicat', label: 'Pièces Délicates' }
   ];
 
+  // ID de l'article en cours d'édition (null si on crée un nouveau)
+  var tarifEnEdition = null;
+
+  // Renvoie le libellé lisible d'une catégorie à partir de son identifiant
   function labelCategorie(idCategorie) {
     for (var i = 0; i < CATEGORIES.length; i++) {
       if (CATEGORIES[i].id === idCategorie) {
@@ -47,7 +51,134 @@ document.addEventListener('DOMContentLoaded', function () {
     { id: 'rideau', name: 'Rideau', category: 'maison', price: 5000, unit: 'pièce', service: 'Lavage complet', icon: 'bi-house-heart' }
   ];
 
+  // -------- NOTIFICATIONS --------
+  var CLE_NOTIFS = 'bide_notifications';
+  var CLE_NOTIFS_CLIENT = 'bide_client_notifications';
+  var notifications = lireStorage(CLE_NOTIFS, []);
+  var nombreNotifsNonLues = notifications.filter(function (n) { return !n.lue; }).length;
+
+  // Ajoute une notification et met à jour l'interface
+  function ajouterNotification(titre, texte, type) {
+    var notif = {
+      id: Date.now(),
+      titre: titre,
+      texte: texte,
+      type: type || 'info',
+      date: new Date().toLocaleDateString('fr-FR') + ' ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      lue: false
+    };
+    notifications.unshift(notif);
+    if (notifications.length > 50) notifications = notifications.slice(0, 50);
+    ecrireStorage(CLE_NOTIFS, notifications);
+    mettreAJourBadgeNotifications();
+    afficherToast(titre + ' — ' + texte);
+  }
+
+  // Met à jour le compteur et le contenu du dropdown notifications
+  function mettreAJourBadgeNotifications() {
+    nombreNotifsNonLues = notifications.filter(function (n) { return !n.lue; }).length;
+
+    // Badge rouge sur la cloche
+    var dot = document.querySelector('.notification-dot');
+    if (dot) {
+      dot.style.display = nombreNotifsNonLues > 0 ? 'block' : 'none';
+    }
+
+    // Remplir le menu dropdown
+    var menu = document.getElementById('notificationMenu');
+    var listeVide = document.getElementById('emptyNotifications');
+    if (!menu) return;
+
+    // Supprimer les anciennes notifications du DOM (sauf le header et le divider)
+    var itemsExistants = menu.querySelectorAll('.notif-item');
+    for (var n = 0; n < itemsExistants.length; n++) {
+      itemsExistants[n].remove();
+    }
+
+    if (notifications.length === 0) {
+      if (listeVide) listeVide.style.display = 'block';
+      return;
+    }
+
+    if (listeVide) listeVide.style.display = 'none';
+
+    var maxAfficher = Math.min(notifications.length, 10);
+    for (var i = 0; i < maxAfficher; i++) {
+      var notif = notifications[i];
+      var icone = 'bi-info-circle text-primary';
+      if (notif.type === 'commande') icone = 'bi-bag-check text-success';
+      if (notif.type === 'alerte') icone = 'bi-exclamation-triangle text-warning';
+
+      var li = document.createElement('li');
+      li.className = 'notif-item px-2 py-1' + (notif.lue ? '' : ' bg-light');
+      li.innerHTML =
+        '<div class="d-flex align-items-start gap-2">' +
+          '<i class="bi ' + icone + ' mt-1"></i>' +
+          '<div class="small">' +
+            '<strong class="d-block">' + notif.titre + '</strong>' +
+            '<span class="text-muted">' + notif.texte + '</span>' +
+            '<small class="text-muted d-block">' + notif.date + '</small>' +
+          '</div>' +
+        '</div>';
+      menu.appendChild(li);
+    }
+
+    // Bouton "Tout marquer comme lu" en bas du menu
+    var liMarquer = document.createElement('li');
+    liMarquer.className = 'notif-item text-center px-2 py-2';
+    liMarquer.innerHTML = '<button class="btn btn-sm btn-link text-decoration-none" id="markAllRead">Tout marquer comme lu</button>';
+    menu.appendChild(liMarquer);
+
+    document.getElementById('markAllRead').addEventListener('click', function () {
+      for (var m = 0; m < notifications.length; m++) {
+        notifications[m].lue = true;
+      }
+      ecrireStorage(CLE_NOTIFS, notifications);
+      mettreAJourBadgeNotifications();
+    });
+  }
+
+  // =========================================================
+  // NOTIFICATIONS CÔTÉ CLIENT (synchronisation)
+  // =========================================================
+  // Écrit une notification dans la clé localStorage du client
+  // pour que le client voie les changements en temps réel
+  var notificationsClient = lireStorage(CLE_NOTIFS_CLIENT, []);
+
+  function ajouterNotificationClient(titre, texte, type) {
+    var notif = {
+      id: Date.now() + Math.random(),
+      titre: titre,
+      texte: texte,
+      type: type || 'info',
+      date: new Date().toLocaleDateString('fr-FR') + ' ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      lue: false
+    };
+    notificationsClient.unshift(notif);
+    if (notificationsClient.length > 30) notificationsClient = notificationsClient.slice(0, 30);
+    ecrireStorage(CLE_NOTIFS_CLIENT, notificationsClient);
+
+    // Notifier l'onglet client via BroadcastChannel
+    canalBide.postMessage({ type: 'notifications_client_updated' });
+  }
+
+  // -------- BROADCASTCHANNEL POUR SYNCHRONISATION MÊME ONGLET --------
+  var canalBide = new BroadcastChannel('bide_sync');
+
+  canalBide.onmessage = function (evenement) {
+    var donnees = evenement.data;
+    if (donnees.type === 'commandes_updated') {
+      commandes = lireStorage(CLE_COMMANDES, []);
+      toutRedessiner();
+    }
+    if (donnees.type === 'tarifs_updated') {
+      tarifs = lireStorage(CLE_TARIFS, TARIFS_PAR_DEFAUT);
+      toutRedessiner();
+    }
+  };
+
   // -------- PETITS OUTILS POUR LIRE / ECRIRE DANS LE LOCALSTORAGE --------
+  // Lis la valeur JSON associée à une clé, ou renvoie la valeur par défaut
   function lireStorage(cle, valeurParDefaut) {
     var texte = localStorage.getItem(cle);
     if (!texte) {
@@ -56,6 +187,7 @@ document.addEventListener('DOMContentLoaded', function () {
     return JSON.parse(texte);
   }
 
+  // Sérialise la valeur en JSON et la sauvegarde dans le localStorage
   function ecrireStorage(cle, valeur) {
     localStorage.setItem(cle, JSON.stringify(valeur));
   }
@@ -89,6 +221,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // =========================================================
   // NAVIGATION ENTRE LES PAGES
   // =========================================================
+  // Affiche la section (page) demandée et met à jour
+  // l'état actif dans la sidebar + déclenche le graphique si besoin
   function changerDePage(pageCible) {
     var idCible = pageCible.indexOf('page-') === 0 ? pageCible : 'page-' + pageCible;
 
@@ -115,6 +249,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (idCible === 'page-dashboard') dessinerGraphiqueDashboard();
     if (idCible === 'page-statistiques') dessinerGraphiqueStats();
+    if (idCible === 'page-profil') renderProfilAdmin();
   }
 
   for (var i = 0; i < liensNavigation.length; i++) {
@@ -125,6 +260,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Ouvre ou ferme la sidebar sur mobile en basculant la classe 'show'
   function basculerMenuLateral() {
     sidebar.classList.toggle('show');
     sidebarOverlay.classList.toggle('show');
@@ -136,6 +272,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // =========================================================
   // BADGES DE STATUT
   // =========================================================
+  // Génère le HTML d'un badge coloré selon le statut de la commande
   function badgeStatut(statut) {
     var couleurs = {
       'En attente': 'bg-warning text-dark',
@@ -152,6 +289,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // =========================================================
   // TABLEAU DE BORD (VUE D'ENSEMBLE)
   // =========================================================
+  // Calcule le chiffre d'affaires total (hors annulées), le nombre de livreurs
+  // actifs, et affiche les 5 commandes les plus récentes dans le dashboard
   function renderDashboard() {
     var chiffreAffaires = 0;
     for (var i = 0; i < commandes.length; i++) {
@@ -197,6 +336,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // =========================================================
   // GESTION DES COMMANDES
   // =========================================================
+  // Remplit le tableau des commandes en appliquant la recherche texte
+  // et le filtre par statut, puis attache les écouteurs sur les selects
   function renderOrdersTable() {
     var corpsTableau = document.getElementById('ordersBody');
     var recherche = (document.getElementById('ordersSearch') && document.getElementById('ordersSearch').value || '').toLowerCase();
@@ -274,6 +415,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // Génère les <option> HTML pour la liste déroulante des livreurs
+  // en pré-sélectionnant le livreur actuellement assigné
   function genererOptionsLivreurs(livreurActuel) {
     var html = '';
     for (var i = 0; i < livreurs.length; i++) {
@@ -283,6 +426,8 @@ document.addEventListener('DOMContentLoaded', function () {
     return html;
   }
 
+  // Génère les <option> HTML pour la liste déroulante des statuts
+  // en pré-sélectionnant le statut actuel de la commande
   function genererOptionsStatut(statutActuel) {
     var statutsPossibles = ['En attente', 'Lavage en cours', 'Prêt & Emballé', 'En livraison', 'Livrée', 'Annulée'];
     var html = '';
@@ -293,11 +438,25 @@ document.addEventListener('DOMContentLoaded', function () {
     return html;
   }
 
+  // Met à jour le statut d'une commande dans le tableau en mémoire,
+  // sauvegarde dans le localStorage et rafraîchit tous les affichages
+  // Écrit aussi une notification côté client pour le suivi en temps réel
   function mettreAJourStatutCommande(idCommande, nouveauStatut) {
     for (var i = 0; i < commandes.length; i++) {
       if (commandes[i].id == idCommande) {
         commandes[i].status = nouveauStatut;
         ecrireStorage(CLE_COMMANDES, commandes);
+
+        // Notifier le client du changement de statut
+        ajouterNotificationClient(
+          'Commande #' + idCommande,
+          'Statut mis à jour : ' + nouveauStatut,
+          nouveauStatut === 'Annulée' ? 'annulation' : 'statut'
+        );
+
+        // Notifier les autres onglets/mêmes onglets via BroadcastChannel
+        canalBide.postMessage({ type: 'commandes_updated' });
+
         afficherToast('Statut de la commande #' + idCommande + ' mis à jour : ' + nouveauStatut);
         toutRedessiner();
         return;
@@ -305,11 +464,25 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // Assigne un livreur à une commande dans le tableau en mémoire,
+  // sauvegarde dans le localStorage et rafraîchit tous les affichages
+  // Écrit aussi une notification côté client pour le suivi en temps réel
   function mettreAJourLivreurCommande(idCommande, nomLivreur) {
     for (var i = 0; i < commandes.length; i++) {
       if (commandes[i].id == idCommande) {
         commandes[i].driver = nomLivreur;
         ecrireStorage(CLE_COMMANDES, commandes);
+
+        // Notifier le client de l'assignation du livreur
+        ajouterNotificationClient(
+          'Commande #' + idCommande,
+          'Livreur assigné : ' + nomLivreur,
+          'livreur'
+        );
+
+        // Notifier les autres onglets/mêmes onglets via BroadcastChannel
+        canalBide.postMessage({ type: 'commandes_updated' });
+
         afficherToast('Livreur ' + nomLivreur + ' assigné à la commande #' + idCommande);
         toutRedessiner();
         return;
@@ -317,6 +490,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // Affiche une modale de confirmation puis supprime la commande
+  // du tableau en mémoire et du localStorage si l'admin confirme
   function demanderSuppressionCommande(idCommande) {
     afficherConfirmation('Supprimer la commande', 'Êtes-vous sûr de vouloir supprimer la commande #' + idCommande + ' ?', function () {
       var nouvelleListe = [];
@@ -327,6 +502,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       commandes = nouvelleListe;
       ecrireStorage(CLE_COMMANDES, commandes);
+      canalBide.postMessage({ type: 'commandes_updated' });
       afficherToast('Commande #' + idCommande + ' supprimée.');
       toutRedessiner();
     });
@@ -335,6 +511,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // =========================================================
   // GESTION DES CLIENTS
   // =========================================================
+  // Remplit le tableau des clients en fusionnant les clients enregistrés
+  // manuellement et ceux extraits automatiquement des commandes
   function renderClientsTable() {
     var corpsTableau = document.getElementById('clientsBody');
     var recherche = (document.getElementById('clientsSearch') && document.getElementById('clientsSearch').value || '').toLowerCase();
@@ -424,6 +602,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // =========================================================
   // GESTION DES LIVREURS
   // =========================================================
+  // Affiche les cartes de chaque livreur avec son statut,
+  // le nombre de courses actives et le bouton de suppression
   function renderDriversGrid() {
     var grille = document.getElementById('driversGrid');
     grille.innerHTML = '';
@@ -482,6 +662,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // =========================================================
   // GESTION DU CATALOGUE / TARIFS
   // =========================================================
+  // Affiche les cartes du catalogue/tarifs avec prix et bouton supprimer
+  // Affiche les cartes du catalogue/tarifs avec prix, modification inline et suppression
   function renderRatesGrid() {
     var grille = document.getElementById('ratesGrid');
     grille.innerHTML = '';
@@ -496,15 +678,48 @@ document.addEventListener('DOMContentLoaded', function () {
           '<div>' +
             '<span class="badge bg-light text-dark border mb-2">' + labelCategorie(r.category) + '</span>' +
             '<h3 class="h6 fw-bold text-dark">' + r.name + '</h3>' +
-            '<div class="fs-4 fw-bold text-primary my-2">' + Number(r.price).toLocaleString('fr-FR') + ' <small class="fs-6 text-muted">FCFA / ' + (r.unit || 'pièce') + '</small></div>' +
+            '<div class="d-flex align-items-center gap-2 my-2">' +
+              '<input type="number" class="form-control form-control-sm d-inline-block price-input" ' +
+                'data-id="' + r.id + '" value="' + r.price + '" ' +
+                'style="width: 120px; font-weight: bold; font-size: 1.1rem; color: var(--bleu-pressing);">' +
+              '<small class="text-muted">FCFA / ' + (r.unit || 'pièce') + '</small>' +
+            '</div>' +
           '</div>' +
           '<div class="border-top pt-2 mt-3 d-flex justify-content-end gap-2">' +
-            '<button class="btn btn-sm btn-outline-danger btn-delete-rate" data-id="' + r.id + '"><i class="bi bi-trash"></i> Supprimer</button>' +
+            '<button class="btn btn-sm btn-primary btn-save-rate" data-id="' + r.id + '"><i class="bi bi-check-lg"></i> Enregistrer</button>' +
+            '<button class="btn btn-sm btn-outline-danger btn-delete-rate" data-id="' + r.id + '"><i class="bi bi-trash"></i></button>' +
           '</div>' +
         '</div>';
       grille.appendChild(carte);
     }
 
+    // Écouteurs sur les boutons "Enregistrer" (modification prix)
+    var boutonsEnregistrer = grille.querySelectorAll('.btn-save-rate');
+    for (var s = 0; s < boutonsEnregistrer.length; s++) {
+      boutonsEnregistrer[s].addEventListener('click', function (e) {
+        var id = e.currentTarget.dataset.id;
+        var champPrix = grille.querySelector('.price-input[data-id="' + id + '"]');
+        var nouveauPrix = Number(champPrix.value);
+
+        if (!nouveauPrix || nouveauPrix < 0) {
+          afficherToast('Veuillez entrer un prix valide.');
+          return;
+        }
+
+        for (var t = 0; t < tarifs.length; t++) {
+          if (tarifs[t].id === id) {
+            tarifs[t].price = nouveauPrix;
+            break;
+          }
+        }
+        ecrireStorage(CLE_TARIFS, tarifs);
+        canalBide.postMessage({ type: 'tarifs_updated' });
+        afficherToast('Prix mis à jour : ' + nouveauPrix.toLocaleString('fr-FR') + ' FCFA');
+        toutRedessiner();
+      });
+    }
+
+    // Écouteurs sur les boutons "Supprimer"
     var boutonsSupprimer = grille.querySelectorAll('.btn-delete-rate');
     for (var j = 0; j < boutonsSupprimer.length; j++) {
       boutonsSupprimer[j].addEventListener('click', function (e) {
@@ -516,6 +731,7 @@ document.addEventListener('DOMContentLoaded', function () {
           }
           tarifs = nouvelleListe;
           ecrireStorage(CLE_TARIFS, tarifs);
+          canalBide.postMessage({ type: 'tarifs_updated' });
           afficherToast('Tarif supprimé.');
           toutRedessiner();
         });
@@ -526,6 +742,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // =========================================================
   // STATISTIQUES
   // =========================================================
+  // Calcule et affiche les KPIs statistiques : CA total, nombre de commandes,
+  // panier moyen et taux de livraison (hors annulées)
   function renderStats() {
     var commandesValides = [];
     for (var i = 0; i < commandes.length; i++) {
@@ -554,6 +772,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // =========================================================
   // GRAPHIQUES (CHART.JS)
   // =========================================================
+  // Dessine le graphique en courbes des revenus hebdomadaires (Chart.js)
+  // Détruit le précédent graphique s'il existe pour éviter les doublons
   function dessinerGraphiqueDashboard() {
     var contexte = document.getElementById('revenueChart') && document.getElementById('revenueChart').getContext('2d');
     if (!contexte) return;
@@ -577,6 +797,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Dessine le graphique en barres des revenus mensuels (Chart.js)
+  // Détruit le précédent graphique s'il existe pour éviter les doublons
   function dessinerGraphiqueStats() {
     var contexte = document.getElementById('statsChart') && document.getElementById('statsChart').getContext('2d');
     if (!contexte) return;
@@ -672,6 +894,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Ouvre la modale de formulaire avec le bon titre et les bons champs
+  // selon l'action demandée (new-client, new-driver, new-rate)
   function ouvrirModal(action) {
     formulaireModal.dataset.action = action;
 
@@ -754,6 +978,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // =========================================================
   var actionAConfirmer = null;
 
+  // Affiche une modale de confirmation générique avec titre, texte
+  // et callback exécuté uniquement si l'utilisateur clique "Confirmer"
   function afficherConfirmation(titre, texte, callback) {
     document.getElementById('confirmTitle').textContent = titre;
     document.getElementById('confirmText').textContent = texte;
@@ -772,6 +998,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // =========================================================
   // TOAST (PETIT MESSAGE DE CONFIRMATION)
   // =========================================================
+  // Affiche un petit message toast en haut à droite pendant 2 secondes
   function afficherToast(message) {
     document.getElementById('toastMessage').textContent = message;
     toastInfo.show();
@@ -782,20 +1009,36 @@ document.addEventListener('DOMContentLoaded', function () {
   // =========================================================
   // Quand le client passe une commande ou modifie son profil dans un
   // autre onglet, le navigateur envoie un événement "storage" ici.
+  var nombreCommandesAvant = commandes.length;
+
   window.addEventListener('storage', function (e) {
     if (e.key === CLE_COMMANDES || e.key === CLE_CLIENTS || e.key === CLE_LIVREURS || e.key === CLE_TARIFS) {
+      var anciennesCommandes = commandes.length;
       commandes = lireStorage(CLE_COMMANDES, []);
       clients = lireStorage(CLE_CLIENTS, []);
       livreurs = lireStorage(CLE_LIVREURS, LIVREURS_PAR_DEFAUT);
       tarifs = lireStorage(CLE_TARIFS, TARIFS_PAR_DEFAUT);
+
+      // Détecter les nouvelles commandes et créer une notification
+      if (commandes.length > anciennesCommandes) {
+        var nouvellesCommandes = commandes.slice(0, commandes.length - anciennesCommandes);
+        for (var n = 0; n < nouvellesCommandes.length; n++) {
+          var cmd = nouvellesCommandes[n];
+          ajouterNotification(
+            'Nouvelle commande #' + cmd.id,
+            (cmd.clientName || 'Client') + ' — ' + Number(cmd.total || 0).toLocaleString('fr-FR') + ' FCFA',
+            'commande'
+          );
+        }
+      }
+
       toutRedessiner();
-      afficherToast('Données synchronisées en direct avec le client !');
     }
   });
 
  
-  const donnesClient = localStorage.getItem('utilisateurConnecte');
-  const utilisateur = donnesClient ? JSON.parse(donnesClient) : null;
+  var donnesClient = localStorage.getItem('utilisateurConnecte');
+  var utilisateur = donnesClient ? JSON.parse(donnesClient) : null;
 
   // Si l'utilisateur n'est pas connecté ou n'est pas admin, on le bloque et redirige
   if (!utilisateur || utilisateur.role !== 'admin') {
@@ -818,6 +1061,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // =========================================================
   // MISE A JOUR GLOBALE ET LANCEMENT INITIAL
   // =========================================================
+  // Recharge et ré-affiche toutes les vues (dashboard, tableaux, grilles, stats)
   function toutRedessiner() {
     renderDashboard();
     renderOrdersTable();
@@ -827,6 +1071,66 @@ document.addEventListener('DOMContentLoaded', function () {
     renderStats();
   }
 
+  // Initialiser les notifications au chargement
+  mettreAJourBadgeNotifications();
+  nombreCommandesAvant = commandes.length;
+
+  // =========================================================
+  // PROFIL ADMIN
+  // =========================================================
+  // Charger le profil admin depuis localStorage
+  var profilAdmin = lireStorage('bide_admin_profile', {
+    name: 'Admin Principal',
+    email: 'admin@bide.tg',
+    phone: '+228 90 00 00 00'
+  });
+
+  function renderProfilAdmin() {
+    document.getElementById('admin-profile-name').value = profilAdmin.name || '';
+    document.getElementById('admin-profile-email').value = profilAdmin.email || '';
+    document.getElementById('admin-profile-phone').value = profilAdmin.phone || '';
+    document.getElementById('adminProfileName').textContent = profilAdmin.name || 'Admin Principal';
+    var avatarEl = document.querySelector('#page-profil .header-avatar');
+    if (avatarEl && profilAdmin.name) {
+      var mots = profilAdmin.name.trim().split(' ');
+      var initiales = mots.length >= 2 ? (mots[0][0] + mots[1][0]).toUpperCase() : mots[0].substring(0, 2).toUpperCase();
+      avatarEl.textContent = initiales;
+    }
+  }
+
+  var formulaireProfilAdmin = document.getElementById('admin-profile-form');
+  if (formulaireProfilAdmin) {
+    formulaireProfilAdmin.addEventListener('submit', function (e) {
+      e.preventDefault();
+      profilAdmin.name = document.getElementById('admin-profile-name').value;
+      profilAdmin.phone = document.getElementById('admin-profile-phone').value;
+      ecrireStorage('bide_admin_profile', profilAdmin);
+      renderProfilAdmin();
+      afficherToast('Profil admin mis à jour !');
+    });
+  }
+
+  // =========================================================
+  // DÉCONNEXION
+  // =========================================================
+  function deconnexion() {
+    localStorage.removeItem('utilisateurConnecte');
+    window.location.href = '../pages/login.html';
+  }
+
+  var boutonLogoutSidebar = document.getElementById('logoutBtn');
+  if (boutonLogoutSidebar) boutonLogoutSidebar.addEventListener('click', deconnexion);
+
+  // Écouteur sur le bouton cloche pour fermer le menu en cliquant dessus
+  var boutonNotifs = document.getElementById('notificationBtn');
+  if (boutonNotifs) {
+    boutonNotifs.addEventListener('click', function () {
+      // Bootstrap gère le dropdown, on met juste à jour le badge
+      nombreNotifsNonLues = notifications.filter(function (n) { return !n.lue; }).length;
+    });
+  }
+
+  renderProfilAdmin();
   toutRedessiner();
   dessinerGraphiqueDashboard();
   dessinerGraphiqueStats();
