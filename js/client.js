@@ -361,7 +361,7 @@ document.addEventListener('DOMContentLoaded', function () {
   let utilisateur = donneesConnexion ? JSON.parse(donneesConnexion) : null;
   if (!utilisateur || utilisateur.role !== 'client') {
     alert("Accès refusé. Veuillez vous connecter en tant que client.");
-    window.location.href = '../pages/login.html';
+    window.location.href = 'login.html';
     return;
   }
 
@@ -383,7 +383,7 @@ document.addEventListener('DOMContentLoaded', function () {
       e.preventDefault();
       localStorage.removeItem('utilisateurConnecte');
       localStorage.removeItem(CLE_PROFIL);
-      window.location.href = '../pages/login.html';
+      window.location.href = 'login.html';
     });
   }
 

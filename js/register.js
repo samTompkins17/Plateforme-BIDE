@@ -5,8 +5,8 @@ let USERS_KEY = "bide_users";
 let CLIENTS_KEY = "bide_clients";
 
 // Liens de redirection
-let ADMIN_URL = "../Dashboard-Admin/dashboard.html";
-let CLIENT_URL = "../pages/client.html";
+let ADMIN_URL = "dashboard.html";
+let CLIENT_URL = "client.html";
 
 // Lis la liste des utilisateurs inscrits depuis le localStorage
 function lireUtilisateurs() {
