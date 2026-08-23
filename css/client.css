@@ -6,6 +6,7 @@
   --orange-energie-hover: #e55a24;
   --gris-perle: #F4F6F7;        
   --blanc-pur: #FFFFFF;         
+  --anthracite: #2D3436;         
   
   --badge-livre-bg: #d1fae5;
   --badge-livre-text: #059669;
@@ -136,7 +137,6 @@ body {
 
 /* composant */
 .category-pill {
-  background-color: #085577; 
   border-radius: 20px;
   padding: 8px 18px;
   font-weight: 600;
@@ -292,4 +292,36 @@ body {
   body * { visibility: hidden; }
   #printable-receipt, #printable-receipt * { visibility: visible; }
   #printable-receipt { position: absolute; left: 0; top: 0; width: 100%; }
+}
+
+/* =========================================================
+   NOTIFICATIONS CLIENT
+   ========================================================= */
+#clientNotificationMenu .notif-item-client {
+  transition: background-color 0.2s;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+#clientNotificationMenu .notif-item-client:hover {
+  background-color: #f8f9fa;
+}
+
+#clientNotificationMenu .notif-item-client:last-child {
+  border-bottom: none;
+}
+
+.notif-dot-client {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #dc3545;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+
+#clientNotifDropdown .dropdown-menu {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
 }
