@@ -132,8 +132,7 @@ body {
 }
 .btn-brand-outline:hover { background-color: var(--bleu-pressing); color: var(--blanc-pur); }
 
-.badge-livre { background-color: var(--badge-livre-bg); color: var(--badge-livre-text); border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; font-weight: 600; }
-.badge-encours { background-color: var(--badge-traitement-bg); color: var(--badge-traitement-text); border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; font-weight: 600; }
+
 
 /* composant */
 .category-pill {
@@ -311,13 +310,16 @@ body {
 }
 
 .notif-dot-client {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
+  min-width: 10px;
+  min-height: 10px;
   border-radius: 50%;
   background-color: #dc3545;
+  border: 2px solid #fff;
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 2px;
+  right: 2px;
 }
 
 #clientNotifDropdown .dropdown-menu {
