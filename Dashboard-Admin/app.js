@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (!utilisateurSession || utilisateurSession.role !== 'admin') {
     alert("Accès refusé. Vous n'avez pas les autorisations nécessaires.");
-    window.location.href = "../pages/index.html";
+    window.location.href = "index.html";
     return;
   }
 
@@ -1364,7 +1364,7 @@ function lireStorage(cle, valeurParDefaut) {
   // =========================================================
   function deconnexion() {
     localStorage.removeItem('utilisateurConnecte');
-    window.location.href = '../pages/login.html';
+    window.location.href = 'login.html';
   }
 
   let boutonLogoutSidebar = document.getElementById('logoutBtn');
