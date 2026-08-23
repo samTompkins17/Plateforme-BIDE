@@ -70,6 +70,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const PAUSE_AFTER_TYPE = 2500;  // pause before erasing
     const PAUSE_AFTER_ERASE = 600;  // pause before re-typing
 
+    // Ajoute un caractère par récursion jusqu'à la fin du texte,
+    // puis déclenche le callback (la pause avant effacement).
     function typeChar(index, callback) {
         if (index <= text.length) {
             textSpan.textContent = text.slice(0, index);
@@ -79,6 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Retire un caractère par récursion jusqu'à texte vide,
+    // puis déclenche le callback (la pause avant re-typage).
     function eraseChar(index, callback) {
         if (index >= 0) {
             textSpan.textContent = text.slice(0, index);
@@ -88,6 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Boucle infinie : tape → pause → efface → pause → recommence.
     function startLoop() {
         typeChar(0, () => {
             setTimeout(() => {
