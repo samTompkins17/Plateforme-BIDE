@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Espace Client | Pressing Bidè</title>
   
+  <link rel="icon" href="../assets/favicon.png" type="image/png">
   <!-- Bootstrap 5.3 CSS & Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
@@ -79,9 +80,7 @@
         <div class="dropdown position-relative" id="clientNotifDropdown">
           <button class="btn btn-white border shadow-sm p-2 rounded-circle position-relative" type="button" id="clientNotificationBtn" data-bs-toggle="dropdown" aria-expanded="false" onclick="event.stopPropagation()">
             <i class="bi bi-bell fs-5 text-dark"></i>
-            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notif-dot-client" style="display:none; font-size:0.6rem;">
-              <span class="visually-hidden">non lues</span>
-            </span>
+            <span class="position-absolute top-0 start-100 translate-middle p-0 bg-danger border border-light rounded-circle notif-dot-client" style="display:none;"></span>
           </button>
           <ul class="dropdown-menu dropdown-menu-end p-0" id="clientNotificationMenu" style="width: 340px; max-height: 400px; overflow-y: auto;">
             <li class="px-3 py-2 border-bottom fw-bold text-dark">
