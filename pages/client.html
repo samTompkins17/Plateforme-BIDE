@@ -54,6 +54,12 @@
         </a>
       </li>
     </ul>
+
+    <div class="p-3 mt-auto">
+      <button type="button" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2" id="logoutBtn">
+        <i class="bi bi-box-arrow-left"></i><span>Déconnexion</span>
+      </button>
+    </div>
   </aside>
 
   <!-- contenu principal -->
@@ -68,13 +74,34 @@
         <h4 class="fw-bold mb-0 text-dark d-none d-md-block" style="color: var(--bleu-pressing)!important;">Espace Client</h4>
       </div>
 
-      <div class="d-flex align-items-center gap-3" style="cursor: pointer;" onclick="navigateTo('profile')">
-        <div class="header-avatar" id="user-avatar">
-          AD
+      <div class="d-flex align-items-center gap-3">
+        <!-- Cloche de notifications -->
+        <div class="dropdown position-relative" id="clientNotifDropdown">
+          <button class="btn btn-white border shadow-sm p-2 rounded-circle position-relative" type="button" id="clientNotificationBtn" data-bs-toggle="dropdown" aria-expanded="false" onclick="event.stopPropagation()">
+            <i class="bi bi-bell fs-5 text-dark"></i>
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notif-dot-client" style="display:none; font-size:0.6rem;">
+              <span class="visually-hidden">non lues</span>
+            </span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end p-0" id="clientNotificationMenu" style="width: 340px; max-height: 400px; overflow-y: auto;">
+            <li class="px-3 py-2 border-bottom fw-bold text-dark">
+              <i class="bi bi-bell me-2"></i>Notifications
+            </li>
+            <li class="px-3 py-3 text-center text-muted small" id="clientEmptyNotifications">
+              Aucune notification pour le moment
+            </li>
+          </ul>
         </div>
-        <div>
-          <div class="fw-bold fs-7" id="header-user-name">Amina Diallo</div>
-          <div class="text-muted small" style="font-size: 0.75rem;">Client Premium</div>
+
+        <!-- Avatar / profil -->
+        <div class="d-flex align-items-center gap-3" style="cursor: pointer;" onclick="navigateTo('profile')">
+          <div class="header-avatar" id="user-avatar">
+            AD
+          </div>
+          <div>
+            <div class="fw-bold fs-7" id="header-user-name">Amina Diallo</div>
+            <div class="text-muted small" style="font-size: 0.75rem;">Client Premium</div>
+          </div>
         </div>
       </div>
     </header>
