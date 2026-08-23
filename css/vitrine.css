@@ -186,8 +186,21 @@ a {
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
     transition: 0.2s ease-in-out;
     cursor: pointer;
-    color: #fafafa;
+    color: #fff;
     background-color: #a93e00;
+}
+
+.service-card:hover .service-icon {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.service-card:hover h3 {
+    color: #fff;
+}
+
+.service-card:hover p {
+    color: rgba(255, 255, 255, 0.85);
 }
 @keyframes serviceAppear {
 
