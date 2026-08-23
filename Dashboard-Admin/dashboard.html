@@ -7,6 +7,7 @@
   <meta name="description" content="Bidè Pressing | Tableau de bord de gestion et administration">
   <title>Bidè Pressing | Administration</title>
 
+  <link rel="icon" href="../assets/favicon.png" type="image/png">
   <!-- Google Fonts & Bootstrap 5 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -113,7 +114,6 @@
             <span class="header-avatar">AD</span>
             <span class="profile-text text-start d-none d-md-inline-block">
               <strong class="d-block small lh-1">Admin Principal</strong>
-              <small class="text-muted" style="font-size: 0.75rem;">Super Admin</small>
             </span>
           </div>
         </div>
@@ -232,6 +232,7 @@
             <select id="orderStatusFilter" class="form-select w-auto" aria-label="Filtre de statut de commande">
               <option value="all">Tous les statuts</option>
               <option value="En attente">En attente</option>
+              <option value="Commande Enregistrée">Commande Enregistrée</option>
               <option value="Lavage en cours">Lavage en cours</option>
               <option value="Prêt & Emballé">Prêt & Emballé</option>
               <option value="En livraison">En livraison</option>
@@ -248,10 +249,10 @@
                     <th scope="col">ID</th>
                     <th scope="col">Client</th>
                     <th scope="col">Destination</th>
-                    <th scope="col">Livreur (Admin)</th>
+                    <th scope="col">Livreur</th>
                     <th scope="col">Montant</th>
                     <th scope="col">Date</th>
-                    <th scope="col">Statut / Travail Admin</th>
+                    <th scope="col">Statut</th>
                     <th scope="col">Actions Admin</th>
                   </tr>
                 </thead>
@@ -375,7 +376,6 @@
               <div class="service-card text-center p-4">
                 <div class="header-avatar mx-auto mb-3" style="width: 80px; height: 80px; font-size: 1.8rem;">AD</div>
                 <h5 class="fw-bold mb-1" id="adminProfileName">Admin Principal</h5>
-                <p class="text-muted small mb-0">Super Admin</p>
               </div>
             </div>
             <div class="col-md-8">
