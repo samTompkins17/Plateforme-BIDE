@@ -1,26 +1,25 @@
-const register = document.getElementById('register');
+var register = document.getElementById('register');
 
 // Identifiants administrateur prédéfinis
-const ADMIN_EMAIL = "admin@bide.tg";
-const ADMIN_PASSWORD = "AdminPassword123";
+var ADMIN_EMAIL = "admin@bide.tg";
+var ADMIN_PASSWORD = "AdminPassword123";
 
 // Liens de redirection
-const ADMIN_URL = "../Dashboard-Admin/dashboard.html";
-const CLIENT_URL = "../pages/client.html";
+var ADMIN_URL = "../Dashboard-Admin/dashboard.html";
+var CLIENT_URL = "../pages/client.html";
 
 register.addEventListener('click', function (event) {
   event.preventDefault();
 
-  // Sélection de vos variables
-  let nom = document.getElementById('nom');
-  let prenom = document.getElementById('prenom');
-  let telephone = document.getElementById('telephone');
-  let email = document.getElementById('email');
-  let password = document.getElementById('password');
-  let confirm = document.getElementById('confirm_password');
-  let terms = document.getElementById('terms');
+  var nom = document.getElementById('nom');
+  var prenom = document.getElementById('prenom');
+  var telephone = document.getElementById('telephone');
+  var email = document.getElementById('email');
+  var password = document.getElementById('password');
+  var confirm = document.getElementById('confirm_password');
+  var terms = document.getElementById('terms');
 
-  let estValide = true;
+  var estValide = true;
 
   // Validation Nom
   if (nom.value.trim().length < 2) {
@@ -39,7 +38,7 @@ register.addEventListener('click', function (event) {
   }
 
   // Validation Téléphone
-  const phoneRegex = /^[0-9\s\+\-]{8,}$/;
+  var phoneRegex = /^[0-9\s\+\-]{8,}$/;
   if (!phoneRegex.test(telephone.value.trim())) {
     showError(telephone, "Numéro de téléphone invalide.");
     estValide = false;
@@ -48,8 +47,8 @@ register.addEventListener('click', function (event) {
   }
 
   // Validation Email
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const userEmail = email.value.trim().toLowerCase();
+  var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  var userEmail = email.value.trim().toLowerCase();
   if (!emailRegex.test(userEmail)) {
     showError(email, "Veuillez entrer une adresse email valide.");
     estValide = false;
@@ -58,7 +57,7 @@ register.addEventListener('click', function (event) {
   }
 
   // Validation Mot de passe
-  const passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
+  var passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
   if (!passwordRegex.test(password.value)) {
     showError(password, "Le mot de passe doit contenir 8 caractères min., avec au moins 1 majuscule et 1 chiffre.");
     estValide = false;
@@ -82,11 +81,10 @@ register.addEventListener('click', function (event) {
   }
 
   if (estValide) {
-    const userPassword = password.value;
+    var userPassword = password.value;
+    var isAdmin = (userEmail === ADMIN_EMAIL.toLowerCase()) && (userPassword === ADMIN_PASSWORD);
 
-    const isAdmin = (userEmail === ADMIN_EMAIL.toLowerCase()) && (userPassword === ADMIN_PASSWORD);
-
-    const utilisateur = {
+    var utilisateur = {
       nom: nom.value.trim(),
       prenom: prenom.value.trim(),
       telephone: telephone.value.trim(),
@@ -96,11 +94,20 @@ register.addEventListener('click', function (event) {
 
     localStorage.setItem('utilisateurConnecte', JSON.stringify(utilisateur));
 
+    // Sauvegarder aussi le profil au format attendu par client.js
+    // (clé 'bide_client_profile' avec champs name, phone, email, address)
+    var profilClient = {
+      name: nom.value.trim() + ' ' + prenom.value.trim(),
+      phone: telephone.value.trim(),
+      email: userEmail,
+      address: '',
+      avatar: ''
+    };
+    localStorage.setItem('bide_client_profile', JSON.stringify(profilClient));
+
     if (isAdmin) {
-      console.log("Accès Admin autorisé. Redirection...");
       window.location.href = ADMIN_URL;
     } else {
-      console.log("Accès Admin refusé. Redirection vers l'espace client...");
       window.location.href = CLIENT_URL;
     }
   }
@@ -108,8 +115,8 @@ register.addEventListener('click', function (event) {
 
 // Fonctions d'affichage des erreurs
 function showError(inputElement, errorMessageText) {
-  const parentContainer = inputElement.parentElement;
-  let errorSpan = parentContainer.querySelector('.error-message');
+  var parentContainer = inputElement.parentElement;
+  var errorSpan = parentContainer.querySelector('.error-message');
 
   if (!errorSpan) {
     errorSpan = document.createElement('span');
@@ -126,11 +133,11 @@ function showError(inputElement, errorMessageText) {
 }
 
 function clearError(inputElement) {
-  const parentContainer = inputElement.parentElement;
-  const errorSpan = parentContainer.querySelector('.error-message');
+  var parentContainer = inputElement.parentElement;
+  var errorSpan = parentContainer.querySelector('.error-message');
 
   if (errorSpan) {
     errorSpan.remove();
   }
-  inputElement.style.borderColor = 'green';
+  inputElement.style.borderColor = '';
 }

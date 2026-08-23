@@ -3,7 +3,6 @@
 
 // -------- CLES DU LOCALSTORAGE (identiques dans app.js) --------
 var CLE_COMMANDES = 'bide_orders';
-var CLE_CLIENTS = 'bide_clients';
 var CLE_TARIFS = 'bide_rates';
 var CLE_PROFIL = 'bide_client_profile';
 
@@ -50,9 +49,42 @@ var mesCommandes = [];          // toutes les commandes de CE client
 var modeLivraison = 'home';
 var modePaiement = 'mobile';
 
+// -------- NOTIFICATIONS CLIENT --------
+// Clé séparée de celle de l'admin pour éviter les conflits
+var CLE_NOTIFS_CLIENT = 'bide_client_notifications';
+var notificationsClient = lireStorage(CLE_NOTIFS_CLIENT, []);
+
+
+
+// -------- BROADCASTCHANNEL POUR SYNCHRONISATION MÊME ONGLET --------
+// Le localStorage.storage ne se déclenche que dans les AUTRES onglets.
+// Pour un rafraîchissement en temps réel dans le MÊME onglet,
+// on utilise un canal de messagerie.
+var canalBide = new BroadcastChannel('bide_sync');
+
+canalBide.onmessage = function (evenement) {
+  var donnees = evenement.data;
+
+  if (donnees.type === 'commandes_updated' || donnees.type === 'tarifs_updated') {
+    var anciennesCommandes = mesCommandes.slice();
+    chargerDonnees();
+    detecterChangementsCommandes(anciennesCommandes, mesCommandes);
+    renderCatalogue('all');
+    renderDashboard();
+    renderSuivi();
+    renderHistorique();
+  }
+
+  if (donnees.type === 'notifications_client_updated') {
+    notificationsClient = lireStorage(CLE_NOTIFS_CLIENT, []);
+    mettreAJourBadgeNotificationsClient();
+  }
+};
+
 // =========================================================
 // PETITS OUTILS POUR LIRE / ECRIRE DANS LE LOCALSTORAGE
 // =========================================================
+// Lis la valeur JSON associée à une clé, ou renvoie la valeur par défaut
 function lireStorage(cle, valeurParDefaut) {
   var texte = localStorage.getItem(cle);
   if (!texte) {
@@ -61,10 +93,12 @@ function lireStorage(cle, valeurParDefaut) {
   return JSON.parse(texte);
 }
 
+// Sérialise la valeur en JSON et la sauvegarde dans le localStorage
 function ecrireStorage(cle, valeur) {
   localStorage.setItem(cle, JSON.stringify(valeur));
 }
 
+// Renvoie le libellé lisible d'une catégorie à partir de son identifiant
 function labelCategorie(idCategorie) {
   for (var i = 0; i < CATEGORIES.length; i++) {
     if (CATEGORIES[i].id === idCategorie) {
@@ -74,7 +108,133 @@ function labelCategorie(idCategorie) {
   return idCategorie;
 }
 
-// On transforme un statut en numéro d'étape (1 à 5) pour la barre de suivi
+// =========================================================
+// SYSTÈME DE NOTIFICATIONS CLIENT
+// =========================================================
+// Ajoute une notification dans le localStorage et met à jour le badge
+function ajouterNotificationClient(titre, texte, type) {
+  var notif = {
+    id: Date.now() + Math.random(),
+    titre: titre,
+    texte: texte,
+    type: type || 'info',
+    date: new Date().toLocaleDateString('fr-FR') + ' ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+    lue: false
+  };
+  notificationsClient.unshift(notif);
+  if (notificationsClient.length > 30) notificationsClient = notificationsClient.slice(0, 30);
+  ecrireStorage(CLE_NOTIFS_CLIENT, notificationsClient);
+  mettreAJourBadgeNotificationsClient();
+}
+
+// Met à jour le compteur et le contenu du dropdown notifications client
+function mettreAJourBadgeNotificationsClient() {
+  var nonLues = notificationsClient.filter(function (n) { return !n.lue; }).length;
+
+  // Badge rouge sur la cloche
+  var dot = document.querySelector('.notif-dot-client');
+  if (dot) {
+    dot.style.display = nonLues > 0 ? 'block' : 'none';
+  }
+
+  // Remplir le menu dropdown
+  var menu = document.getElementById('clientNotificationMenu');
+  var listeVide = document.getElementById('clientEmptyNotifications');
+  if (!menu) return;
+
+  // Supprimer les anciennes notifications du DOM
+  var itemsExistants = menu.querySelectorAll('.notif-item-client');
+  for (var n = 0; n < itemsExistants.length; n++) {
+    itemsExistants[n].remove();
+  }
+
+  if (notificationsClient.length === 0) {
+    if (listeVide) listeVide.style.display = 'block';
+    return;
+  }
+
+  if (listeVide) listeVide.style.display = 'none';
+
+  var maxAfficher = Math.min(notificationsClient.length, 8);
+  for (var i = 0; i < maxAfficher; i++) {
+    var notif = notificationsClient[i];
+    var icone = 'bi-info-circle text-primary';
+    if (notif.type === 'statut') icone = 'bi-arrow-repeat text-info';
+    if (notif.type === 'livreur') icone = 'bi-bicycle text-success';
+    if (notif.type === 'alerte') icone = 'bi-exclamation-triangle text-warning';
+    if (notif.type === 'annulation') icone = 'bi-x-circle text-danger';
+
+    var li = document.createElement('li');
+    li.className = 'notif-item-client px-3 py-2' + (notif.lue ? '' : ' bg-light');
+    li.innerHTML =
+      '<div class="d-flex align-items-start gap-2">' +
+        '<i class="bi ' + icone + ' mt-1"></i>' +
+        '<div class="small">' +
+          '<strong class="d-block">' + notif.titre + '</strong>' +
+          '<span class="text-muted">' + notif.texte + '</span>' +
+          '<small class="text-muted d-block">' + notif.date + '</small>' +
+        '</div>' +
+      '</div>';
+    menu.appendChild(li);
+  }
+
+  // Bouton "Tout marquer comme lu" en bas
+  var liMarquer = document.createElement('li');
+  liMarquer.className = 'notif-item-client text-center px-2 py-2';
+  liMarquer.innerHTML = '<button class="btn btn-sm btn-link text-decoration-none" id="clientMarkAllRead">Tout marquer comme lu</button>';
+  menu.appendChild(liMarquer);
+
+  var markBtn = document.getElementById('clientMarkAllRead');
+  if (markBtn) {
+    markBtn.addEventListener('click', function () {
+      for (var m = 0; m < notificationsClient.length; m++) {
+        notificationsClient[m].lue = true;
+      }
+      ecrireStorage(CLE_NOTIFS_CLIENT, notificationsClient);
+      mettreAJourBadgeNotificationsClient();
+    });
+  }
+}
+
+// Détecte les changements de statut/livreur dans les commandes
+// et génère les notifications client
+function detecterChangementsCommandes(anciennesCommandes, nouvellesCommandes) {
+  var mapAnciennes = {};
+  for (var i = 0; i < anciennesCommandes.length; i++) {
+    mapAnciennes[anciennesCommandes[i].id] = anciennesCommandes[i];
+  }
+
+  for (var j = 0; j < nouvellesCommandes.length; j++) {
+    var cmd = nouvellesCommandes[j];
+    var ancienne = mapAnciennes[cmd.id];
+
+    if (!ancienne) {
+      // Nouvelle commande (pas encore trackée)
+      continue;
+    }
+
+    // Changement de statut
+    if (ancienne.status !== cmd.status) {
+      ajouterNotificationClient(
+        'Commande #' + cmd.id,
+        'Statut mis à jour : ' + cmd.status,
+        cmd.status === 'Annulée' ? 'annulation' : 'statut'
+      );
+    }
+
+    // Changement de livreur
+    if (ancienne.driver !== cmd.driver && cmd.driver) {
+      ajouterNotificationClient(
+        'Commande #' + cmd.id,
+        'Livreur assigné : ' + cmd.driver,
+        'livreur'
+      );
+    }
+  }
+}
+
+// Convertit un libellé de statut en numéro d'étape (1-5)
+// pour positionner correctement le stepper visuel de suivi
 function etapeDepuisStatut(statut) {
   if (statut === 'En attente') return 1;
   if (statut === 'Commande Enrégstré') return 2;
@@ -88,6 +248,8 @@ function etapeDepuisStatut(statut) {
 
 // CHARGEMENT DES DONNEES DEPUIS LE LOCALSTORAGE
 
+// Charge toutes les données depuis le localStorage : catalogue, profil,
+// et filtre les commandes pour ne garder que celles du client connecté
 function chargerDonnees() {
   // 1) le catalogue : si l'admin en a déjà enregistré un, on le prend.
   //    sinon on enregistre le catalogue par défaut pour la première fois.
@@ -115,7 +277,8 @@ function chargerDonnees() {
   }
 }
 
-// On ajoute (ou remplace) UNE commande dans la liste globale, puis on sauvegarde
+// Ajoute une nouvelle commande en tête de la liste globale des commandes
+// dans le localStorage (le client et l'admin partagent la même liste)
 function sauvegarderCommande(commande) {
   var toutesLesCommandes = lireStorage(CLE_COMMANDES, []);
   toutesLesCommandes.unshift(commande);
@@ -127,7 +290,6 @@ function sauvegarderCommande(commande) {
 
 document.addEventListener('DOMContentLoaded', function () {
   chargerDonnees();
-
   initMenuMobile();
   initNavigation();
 
@@ -136,21 +298,42 @@ document.addEventListener('DOMContentLoaded', function () {
   renderDashboard();
   renderSuivi();
   renderHistorique();
+  mettreAJourBadgeNotificationsClient();
+
+  // Bouton de déconnexion : nettoie le localStorage et redirige vers login
+  var boutonDeconnexion = document.getElementById('logoutBtn');
+  if (boutonDeconnexion) {
+    boutonDeconnexion.addEventListener('click', function (e) {
+      e.preventDefault();
+      localStorage.removeItem('utilisateurConnecte');
+      localStorage.removeItem(CLE_PROFIL);
+      window.location.href = '../pages/login.html';
+    });
+  }
 
   // Si l'admin change quelque chose (statut, livreur, tarif...) dans un
   // AUTRE onglet, le navigateur envoie un événement "storage" ici.
-  // On en profite pour tout ré-afficher avec les données à jour.
+  // On détecte les changements de statut/livreur et on génère des notifications.
   window.addEventListener('storage', function (evenement) {
     if (evenement.key === CLE_COMMANDES || evenement.key === CLE_TARIFS) {
+      var anciennesCommandes = mesCommandes.slice();
       chargerDonnees();
+      detecterChangementsCommandes(anciennesCommandes, mesCommandes);
       renderCatalogue('all');
       renderDashboard();
       renderSuivi();
       renderHistorique();
     }
+
+    // Si l'admin a modifié les notifications client directement
+    if (evenement.key === CLE_NOTIFS_CLIENT) {
+      notificationsClient = lireStorage(CLE_NOTIFS_CLIENT, []);
+      mettreAJourBadgeNotificationsClient();
+    }
   });
 });
 
+// Active le bouton hamburger pour ouvrir/fermer la sidebar sur mobile
 function initMenuMobile() {
   var boutonMenu = document.getElementById('sidebar-toggle');
   var sidebar = document.getElementById('sidebar');
@@ -169,6 +352,7 @@ function initMenuMobile() {
   overlay.addEventListener('click', fermerMenu);
 }
 
+// Attache un écouteur de clic à chaque lien de la sidebar pour naviguer entre onglets
 function initNavigation() {
   var liens = document.querySelectorAll('.sidebar-menu .nav-link');
   for (var i = 0; i < liens.length; i++) {
@@ -179,6 +363,8 @@ function initNavigation() {
   }
 }
 
+// Affiche l'onglet correspondant à idCible et met à jour la classe active
+// dans la sidebar + referme le menu mobile si ouvert
 function navigateTo(idCible) {
   var onglets = document.querySelectorAll('.tab-pane-custom');
   for (var i = 0; i < onglets.length; i++) {
@@ -257,6 +443,7 @@ function renderDashboard() {
     '</div>';
 }
 
+// Filtre les commandes pour ne garder que celles pas encore livrées ou annulées
 function getCommandesActives() {
   var resultat = [];
   for (var i = 0; i < mesCommandes.length; i++) {
@@ -321,6 +508,8 @@ function renderCatalogue(categorieChoisie) {
   }
 }
 
+// Incrémente ou décrémente la quantité d'un article dans le panier
+// Supprime l'article si la quantité tombe à 0
 function updateCartQuantity(idProduit, delta) {
   var quantiteActuelle = panier[idProduit] || 0;
   var nouvelleQuantite = Math.max(0, quantiteActuelle + delta);
@@ -339,6 +528,7 @@ function updateCartQuantity(idProduit, delta) {
   updateCartSummary();
 }
 
+// Recherche un produit dans le catalogue par son id et renvoie l'objet ou null
 function trouverProduit(idProduit) {
   for (var i = 0; i < catalogProducts.length; i++) {
     if (catalogProducts[i].id === idProduit) {
@@ -348,6 +538,8 @@ function trouverProduit(idProduit) {
   return null;
 }
 
+// Met à jour l'affichage du récapitulatif panier (liste des articles, sous-total)
+// et active/désactive le bouton de validation selon que le panier est vide ou non
 function updateCartSummary() {
   var container = document.getElementById('cart-summary-items');
   container.innerHTML = '';
@@ -381,6 +573,7 @@ function updateCartSummary() {
 // =========================================================
 // LIVRAISON / PAIEMENT (CHECKOUT)
 // =========================================================
+// Bascule le mode de livraison (domicile vs agence) et rafraîchit la page checkout
 function selectDeliveryMode(mode) {
   modeLivraison = mode;
   document.getElementById('option-delivery-home').classList.toggle('selected', mode === 'home');
@@ -389,6 +582,7 @@ function selectDeliveryMode(mode) {
   renderCheckoutPage();
 }
 
+// Bascule le mode de paiement (mobile, carte, espèces) et met à jour l'UI
 function selectPaymentMode(mode) {
   modePaiement = mode;
   var modes = ['mobile', 'card', 'cash'];
@@ -400,12 +594,14 @@ function selectPaymentMode(mode) {
   }
 }
 
+// Renvoie le libellé lisible du mode de paiement pour l'affichage
 function libellePaiement(mode) {
   if (mode === 'card') return 'Carte Visa/MC';
   if (mode === 'cash') return 'Espèces';
   return 'Mobile Money';
 }
 
+// Affiche le récapitulatif de la page checkout (articles, sous-total, frais, total)
 function renderCheckoutPage() {
   var liste = document.getElementById('checkout-summary-list');
   liste.innerHTML = '';
@@ -431,6 +627,8 @@ function renderCheckoutPage() {
   document.getElementById('checkout-final-total').innerText = (sousTotal + fraisLivraison).toLocaleString() + ' CFA';
 }
 
+// Valide la commande : génère un id, crée l'objet commande avec les champs
+// attendus par l'admin, sauvegarde dans le localStorage, vide le panier et redirige
 function confirmOrderProcess() {
   var idsPanier = Object.keys(panier);
   if (idsPanier.length === 0) {
@@ -477,6 +675,9 @@ function confirmOrderProcess() {
   sauvegarderCommande(commande);
   chargerDonnees();
 
+  // Notifier l'onglet admin via BroadcastChannel
+  canalBide.postMessage({ type: 'commandes_updated' });
+
   panier = {};
   renderCatalogue('all');
   updateCartSummary();
@@ -492,6 +693,7 @@ function confirmOrderProcess() {
 // =========================================================
 // SUIVI DES COMMANDES
 // =========================================================
+// Affiche les cartes de suivi des commandes actives avec le stepper d'étapes
 function renderSuivi() {
   var container = document.getElementById('active-trackings-container');
   container.innerHTML = '';
@@ -587,6 +789,7 @@ function actualiserMesCommandes() {
 // =========================================================
 // HISTORIQUE
 // =========================================================
+// Remplit le tableau d'historique avec toutes les commandes du client
 function renderHistorique() {
   var tbody = document.getElementById('history-table-body');
   tbody.innerHTML = '';
@@ -613,6 +816,7 @@ function renderHistorique() {
   }
 }
 
+// Ouvre la modale de reçu de paiement pour une commande donnée
 function openReceiptModal(idCommande) {
   var commande = null;
   for (var i = 0; i < mesCommandes.length; i++) {
@@ -639,6 +843,8 @@ function openReceiptModal(idCommande) {
 // =========================================================
 // PROFIL CLIENT
 // =========================================================
+// Remplit tous les champs du formulaire profil et les avatars
+// avec les données de monProfil (ou les initiales si pas de photo)
 function renderProfil() {
   var initiales = calculerInitiales(monProfil.name);
 
@@ -670,6 +876,8 @@ function renderProfil() {
   document.getElementById('profile-address').value = monProfil.address;
 }
 
+// Extrait les deux premières lettres du nom (ou du prénom+nom)
+// pour les afficher dans les avatars par défaut
 function calculerInitiales(nomComplet) {
   var mots = nomComplet.trim().split(' ');
   if (mots.length === 1) {
@@ -678,6 +886,8 @@ function calculerInitiales(nomComplet) {
   return (mots[0][0] + mots[1][0]).toUpperCase();
 }
 
+// Lit le fichier image sélectionné et le convertit en base64
+// pour l'afficher comme avatar de profil
 function handleAvatarUpload(event) {
   var fichier = event.target.files[0];
   if (!fichier) return;
@@ -691,6 +901,8 @@ function handleAvatarUpload(event) {
   lecteur.readAsDataURL(fichier);
 }
 
+// Récupère les valeurs du formulaire profil, les sauvegarde
+// dans le localStorage et rafraîchit l'affichage
 function saveProfile(event) {
   event.preventDefault();
 
@@ -706,6 +918,8 @@ function saveProfile(event) {
   alert('Informations personnelles sauvegardées !');
 }
 
+// Vérifie que le nouveau mot de passe correspond à la confirmation
+// (pas de vérification côté serveur car tout est en localStorage)
 function changePassword(event) {
   event.preventDefault();
   var nouveauMdp = document.getElementById('new-pass').value;
@@ -719,8 +933,3 @@ function changePassword(event) {
   alert('Mot de passe mis à jour avec succès !');
   document.getElementById('password-form').reset();
 };
-
- if (!utilisateur || utilisateur.role !== 'client') {
-    alert("Accès refusé. Vous n'avez pas les autorisations nécessaires.");
-    window.location.href = "../pages/index.html";
-  }
