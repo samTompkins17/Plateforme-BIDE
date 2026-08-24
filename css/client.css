@@ -24,8 +24,9 @@ body {
 /* logo */
 .logo {
   max-height: 40px;
-  width: auto;
+  width: 200px;
   object-fit: contain;
+  height: 100px
 }
 
 /* sidebar responsive */
@@ -49,6 +50,11 @@ body {
 
 .sidebar-brand img.logo {
   max-height: 45px;
+}
+
+#logoutBtn {
+   margin-top: 150%;
+
 }
 
 .sidebar-menu {
