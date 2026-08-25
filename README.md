@@ -93,8 +93,7 @@ Pour tester le parcours client, créer un compte avec une autre adresse e-mail.
 │   ├── login.js               # Connexion et redirection
 │   └── register.js            # Création de compte
 ├── assets/                    # Logos, images, vidéo et autres médias
-├── package.json
-└── vercel.json                # En-têtes de cache des ressources
+└── vercel.json
 ```
 
 ## Limites du prototype
