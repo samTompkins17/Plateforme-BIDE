@@ -129,7 +129,7 @@ Projet réalisé dans le cadre de la formation en développement web à l'ADN pa
          <br>
          <strong>Duah Prince Yao AMANKWAAH</strong>
          <br>
-         <small>flex68016@gmail.com</small>
+         <small>ypad0510@gmail.com</small>
       </td>
       <td align="center">
          <img src="assets/norbert.png" width="120" alt="Photo de Folly Norbert MESSANH">
