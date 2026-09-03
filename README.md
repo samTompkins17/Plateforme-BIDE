@@ -51,7 +51,7 @@ Les données sont conservées dans le `localStorage`. Les espaces client et admi
 - `localStorage` et `BroadcastChannel` ;
 - Vercel pour un éventuel déploiement statique.
 
-# Tester le projet
+# Tester le projet en local
 
 Ouvrir [index.html](index.html), puis :
 
@@ -141,9 +141,3 @@ Projet réalisé dans le cadre de la formation en développement web à l'ADN pa
       </td>
    </tr>
 </table>
-
-# Lien TRELLO pour la gestion du projet 
-
-```text
-https://trello.com/invite/b/6a842bdf88f8146a9eaeeb59/ATTIfcb2db628b125c1fe1c81fa96b9e06269AA1924F/projet-bide
-```
