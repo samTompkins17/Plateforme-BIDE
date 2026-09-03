@@ -40,6 +40,8 @@ body {
   left: 0;
   z-index: 1040;
   transition: transform 0.3s ease-in-out;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar-brand {
@@ -50,11 +52,6 @@ body {
 
 .sidebar-brand img.logo {
   max-height: 45px;
-}
-
-#logoutBtn {
-   margin-top: 150%;
-
 }
 
 .sidebar-menu {
